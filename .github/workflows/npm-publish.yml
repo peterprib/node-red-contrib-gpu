@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 12
       - run: npm ci
-      - run: npm test
+#      - run: npm test        ### environment doesn't have GPU
 
   publish-npm:
     needs: build
