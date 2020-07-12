@@ -1,0 +1,103 @@
+<script type="text/javascript">
+	/*globals RED */
+	RED.nodes.registerType('gpunode', {
+		category: 'function',
+		color: '#fdeea2',
+		defaults: {
+			name: {value: ""},
+			action: {value:"arrayAdd",required:true},
+			source1Property:{value:"msg.payload"},
+			source2Property:{value:"msg.payload"},
+			targetProperty:{value:"msg.payload"},
+		},
+		inputs: 1,
+		outputs: 3,
+		icon: "fontawesome/fa-random",
+		align: 'left',
+		paletteLabel: "gpu",
+		inputLabels: "Message In",
+		outputLabels: ["Message Out","Error","No GPU"],
+		label: function () {
+			return this.name ||this.action|| "GPU";
+		},
+		oneditprepare: function() {
+			$("#node-input-action").change(function() {
+				$(".form-row-http-in-skip").hide();
+				if(![""].includes($("#node-input-action").val())) {
+					$(".form-row-http-in-csv").hide();
+				}
+				switch ($(this).val()) {
+				default:
+				}
+			}).change();
+		},
+		oneditsave: function() {
+		},
+		oneditresize: function() {
+		},
+		resizeRule : function(file,newWidth) {
+		}
+	});
+</script>
+
+<script type="text/x-red" data-template-name="gpunode">
+
+	<div class="form-row">
+		<label for="node-input-name"><i class="fa fa-tag"></i> Name </label>
+		<input type="text" id="node-input-name" placeholder="Name">
+	</div>
+	<div class="form-row form-row-http-in-source1Property show">
+		<label for="node-input-source1Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 1</label>
+		<input type="text" id="node-input-source1Property" placeholder="msg.payload">
+	</div>
+	<div class="form-row form-row-http-in-source1Property show">
+		<label for="node-input-source2Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 2</label>
+		<input type="text" id="node-input-source2Property" placeholder="msg.payload">
+	</div>
+	<div class="form-row form-row-http-in-targetProperty show">
+		<label for="node-input-targetProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Target Property </label>
+		<input type="text" id="node-input-targetProperty" placeholder="msg.payload">
+	</div>
+
+	<div class="form-row">
+		<label for="node-input-action"><i class="fa fa-list-ul"></i> Function </label>
+		<select id="node-input-action" placeholder="action">
+			<option value="arrayAdd">Add Array</option>
+			<option value="arrayMinus">Substract Array</option>
+			<option value="arrayMulptiply">Mulptiply Array</option>
+			<option value="arrayDivide">Divide Array/option>
+			<option value="arrayRemainder">Remainder Array</option>
+			<option value="arrayPower">Power Array</option>
+			<option value="arrayBitwiseAnd">Bitwise And Array</option>
+			<option value="arrayBitwiseOr">Bitwise Or Array</option>
+			<option value="arrayBitwiseXOR">Bitwise XOR Array</option>
+			<option value="arrayLeftShift">Left Shift Array</option>
+			<option value="arrayRightShift">Right Shift Array</option>
+			<option value="arrayRightShiftZeroFill">Right Shift Zero Fill Array</option>
+			<option value="matrixMultiple">Matrix Multiple Arrays</option>
+			<option value="matrixSumAcross">Sum Columns</option>
+			<option value="matrixSumDown">Sum Rows</option>
+ 			<option value="imageToArray">Image To Array</option> 
+		</select>
+	</div>
+
+</script>
+
+<script type="text/x-red" data-help-name="gpunode">
+	<p>translates msg payload from one form to another</p>
+	<p>
+	Source/Target/Topic allows the override of the property to an expression which can reference RED, node or msg variables.
+	</p>
+	<h3>Inputs</h3>
+	<dl class="message-properties">
+		<dt>msg <span class="property-type">topic</span></dt>
+		<dd>incoming message with topic</dd>
+		<dt>msg <span class="property-type">payload</span></dt>
+		<dd></dd>
+	</dl>
+	<h3>Ports</h3>
+	<dl class="message-properties">
+		<dt><span class="property-type">error</span></dt>
+		<dd>a message where msg.error details error during transformation</dd>
+	</dl>
+</script>
