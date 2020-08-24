@@ -5,7 +5,7 @@ const GPU=require("./gpu");
 
 function evalFunction(id,mapping){
 	try{
-		return eval(mapping);
+		return eval("(RED,node,msg,data)=>"+mapping);
 	} catch(ex) {
 		throw Error(id+" "+ex.message);
 	}
@@ -14,20 +14,16 @@ module.exports = function (RED) {
 	function gpuNode(config) {
 		RED.nodes.createNode(this, config);
 		const node=Object.assign(this,config);
-		const source1Map="(RED,node,msg)=>"+(node.source1Property||"msg.payload"),
-			source2Map="(RED,node,msg)=>"+(node.source2Property||"msg.payload"),
-			source1Delete="(RED,node,msg)=>{delete "+(node.source1Property||"msg.payload")+";}",
-			source2Delete="(RED,node,msg)=>{delete "+(node.source2Property||"msg.payload")+";}",
-			targetMap="(RED,node,msg,data)=>{"+(node.targetProperty||"msg.payload")+"=data;"+
-				(node.sendInFunction ? "" : "node.send(msg);" )+
-				"}";
-		logger.sendInfo({label:"mappings",source1:source1Map,source2:source2Map,target:targetMap});
 		try{
-			node.getData1=evalFunction("source1",source1Map);
-			node.getData2=evalFunction("source2",source2Map);
-			node.deleteSource1Property=evalFunction("source1 delete",source1Delete);
-			node.deleteSource2Property=evalFunction("source2 delete",source2Delete);
-			node.setData=evalFunction("target",targetMap);
+			node.getData1=evalFunction("source1",node.source1Property||"msg.payload");
+			node.getData2=evalFunction("source2",node.source2Property||"msg.payload");
+			node.deleteSource1Property=evalFunction("source1 delete","{delete "+(node.source1Property||"msg.payload")+";}");
+			node.deleteSource2Property=evalFunction("source2 delete","{delete "+(node.source2Property||"msg.payload")+";}");
+			node.setData=evalFunction("target","{"+
+				(node.targetProperty||"msg.payload")+"=data;"+
+				(node.sendInFunction ? "" : "node.send(msg);")+
+				"}");
+			node.columns=evalFunction("columns",node.columnsProperty||"undefined");
 		} catch(ex) {
 			node.error(ex);
 			node.status({fill:"red",shape:"ring",text:"Invalid setup "+ex.message});

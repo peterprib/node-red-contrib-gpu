@@ -1,0 +1,227 @@
+[
+    {
+        "id": "91608fc9.365ee",
+        "type": "tab",
+        "label": "GPU Tests",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ade51ef9.4c4e1",
+        "type": "gpunode",
+        "z": "91608fc9.365ee",
+        "name": "",
+        "action": "arrayAdd",
+        "source1Property": "msg.payload",
+        "source2Property": "msg.payload",
+        "targetProperty": "msg.payload",
+        "columnsProperty": "",
+        "columnsPropertyValid": true,
+        "x": 420,
+        "y": 120,
+        "wires": [
+            [
+                "91330711.489768",
+                "9ece3298.30cfc"
+            ],
+            [
+                "661e0892.a941d8"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "9ece3298.30cfc",
+        "type": "test",
+        "z": "91608fc9.365ee",
+        "name": "test add array",
+        "topic": "",
+        "payload": "[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]",
+        "payloadType": "json",
+        "result": "[{\"0\":2,\"1\":4,\"2\":6,\"3\":8},{\"0\":10,\"1\":12,\"2\":14,\"3\":16},{\"0\":18,\"1\":20,\"2\":22,\"3\":24},{\"0\":26,\"1\":28,\"2\":30,\"3\":32}]",
+        "resultType": "json",
+        "escapeString": false,
+        "resultProperty": "msg.payload",
+        "x": 180,
+        "y": 40,
+        "wires": [
+            [
+                "ade51ef9.4c4e1"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "661e0892.a941d8",
+        "type": "debug",
+        "z": "91608fc9.365ee",
+        "name": "error",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 720,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "91330711.489768",
+        "type": "debug",
+        "z": "91608fc9.365ee",
+        "name": "ok",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 710,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "da96c2eb.f2975",
+        "type": "gpunode",
+        "z": "91608fc9.365ee",
+        "name": "",
+        "action": "matrixMultiple",
+        "source1Property": "msg.payload",
+        "source2Property": "msg.payload",
+        "targetProperty": "msg.payload",
+        "columnsProperty": "",
+        "columnsPropertyValid": true,
+        "x": 440,
+        "y": 240,
+        "wires": [
+            [
+                "91330711.489768",
+                "b9ee110f.4f5a1"
+            ],
+            [
+                "661e0892.a941d8"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "b9ee110f.4f5a1",
+        "type": "test",
+        "z": "91608fc9.365ee",
+        "name": "test matrix multiple",
+        "topic": "",
+        "payload": "[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]",
+        "payloadType": "json",
+        "result": "[{\"0\":90,\"1\":100,\"2\":110,\"3\":120},{\"0\":202,\"1\":228,\"2\":254,\"3\":280},{\"0\":314,\"1\":356,\"2\":398,\"3\":440},{\"0\":426,\"1\":484,\"2\":542,\"3\":600}]",
+        "resultType": "json",
+        "escapeString": false,
+        "resultProperty": "msg.payload",
+        "x": 170,
+        "y": 160,
+        "wires": [
+            [
+                "da96c2eb.f2975"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "ac1a20b2.07719",
+        "type": "test",
+        "z": "91608fc9.365ee",
+        "name": "test norms",
+        "topic": "",
+        "payload": "[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]",
+        "payloadType": "json",
+        "result": "[{\"0\":6.5,\"1\":1.1180340051651,\"2\":641.8410034179688},{\"0\":10.5,\"1\":1.1180340051651,\"2\":2569.510498046875},{\"0\":14.5,\"1\":1.1180340051651,\"2\":6660.978515625},{\"0\":10.5,\"1\":1.1180340051651,\"2\":2569.510498046875}]",
+        "resultType": "json",
+        "escapeString": false,
+        "resultProperty": "msg.payload",
+        "x": 130,
+        "y": 300,
+        "wires": [
+            [
+                "159da3e0.3da58c"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "159da3e0.3da58c",
+        "type": "gpunode",
+        "z": "91608fc9.365ee",
+        "name": "",
+        "action": "matrixNormsAcross",
+        "source1Property": "msg.payload",
+        "source2Property": "msg.payload",
+        "targetProperty": "msg.payload",
+        "columnsProperty": "",
+        "columnsPropertyValid": true,
+        "x": 430,
+        "y": 380,
+        "wires": [
+            [
+                "ac1a20b2.07719",
+                "91330711.489768"
+            ],
+            [
+                "661e0892.a941d8"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "5531e44b.fb92dc",
+        "type": "test",
+        "z": "91608fc9.365ee",
+        "name": "test add array",
+        "topic": "",
+        "payload": "[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]",
+        "payloadType": "json",
+        "result": "[{\"0\":1,\"1\":13,\"2\":7,\"3\":4.4721360206604},{\"0\":1,\"1\":14,\"2\":8,\"3\":4.4721360206604},{\"0\":1,\"1\":15,\"2\":9,\"3\":4.4721360206604},{\"0\":1,\"1\":16,\"2\":10,\"3\":4.4721360206604}]",
+        "resultType": "json",
+        "escapeString": false,
+        "resultProperty": "msg.payload",
+        "x": 140,
+        "y": 460,
+        "wires": [
+            [
+                "de900c0f.c56ec"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "de900c0f.c56ec",
+        "type": "gpunode",
+        "z": "91608fc9.365ee",
+        "name": "",
+        "action": "matrixStatsDown",
+        "source1Property": "msg.payload",
+        "source2Property": "msg.payload",
+        "targetProperty": "msg.payload",
+        "columnsProperty": "",
+        "columnsPropertyValid": true,
+        "x": 430,
+        "y": 540,
+        "wires": [
+            [
+                "5531e44b.fb92dc",
+                "91330711.489768"
+            ],
+            [
+                "661e0892.a941d8"
+            ],
+            []
+        ]
+    }
+]

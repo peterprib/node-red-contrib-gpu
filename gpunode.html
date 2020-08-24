@@ -9,10 +9,12 @@
 			source1Property:{value:"msg.payload"},
 			source2Property:{value:"msg.payload"},
 			targetProperty:{value:"msg.payload"},
+			columnsProperty:{value:""},
+			columnsPropertyValid:{value:true,validate:(v)=>v}
 		},
 		inputs: 1,
 		outputs: 3,
-		icon: "fontawesome/fa-random",
+		icon: "fontawesome/fa-cubes",
 		align: 'left',
 		paletteLabel: "gpu",
 		inputLabels: "Message In",
@@ -21,13 +23,35 @@
 			return this.name ||this.action|| "GPU";
 		},
 		oneditprepare: function() {
+			let node=this,hasSecondArgument,hasColumns;
+			const operands2=["arrayAdd","arrayMinus","arrayMulptiply","arrayDivide","arrayRemainder","arrayPower","arrayBitwiseAnd","arrayBitwiseOr","arrayBitwiseXOR","arrayLeftShift","arrayRightShift","arrayRightShiftZeroFill"];
+			const operandsColumns=["matrixNormsAcross","matrixNormsDown","matrixVarianceAcross","matrixVarianceDown","matrixCorrelationAcross","matrixCorrelationDown","matrixCovarianceAcross","matrixCovarianceDown"];
+
 			$("#node-input-action").change(function() {
-				$(".form-row-http-in-skip").hide();
-				if(![""].includes($("#node-input-action").val())) {
-					$(".form-row-http-in-csv").hide();
-				}
-				switch ($(this).val()) {
-				default:
+				hasSecondArgument=operands2.includes($(this).val());
+				hasColumns=operandsColumns.includes($(this).val());
+				$(".form-row-http-in-source1Property")[hasSecondArgument?"show":"hide"]();
+				$(".form-row-http-in-columns")[hasColumns?"show":"hide"]();
+			}).change();
+			$("#node-input-columnsProperty").change(function() {
+				node.columnsPropertyValid=true;
+				$(this).css({"background-color":"white"});
+				if(!hasColumns) return;
+				try{
+					const value=$(this).val()
+					if(value=="") return;
+					if(value.startsWith("[")) {
+						const test=JSON.parse(value);
+						if(!Array.isArray(test)) throw Error("expected valid JSON array");
+						if(test.find(c=>!(Number.isInteger(c)&&c>=0))) throw Error("No a positive integer");
+						return;
+ 					} 
+ 					if(value.startsWith("msg.")) return;
+					throw Error("if detailed must start with [ or msg.");
+				} catch(ex) {
+					console.warn(ex.message);
+					$(this).css({"background-color":"red"});
+					node.columnsPropertyValid=false;
 				}
 			}).change();
 		},
@@ -35,7 +59,7 @@
 		},
 		oneditresize: function() {
 		},
-		resizeRule : function(file,newWidth) {
+		resizeRule: function(file,newWidth) {
 		}
 	});
 </script>
@@ -63,30 +87,59 @@
 		<label for="node-input-action"><i class="fa fa-list-ul"></i> Function </label>
 		<select id="node-input-action" placeholder="action">
 			<option value="arrayAdd">Add Array</option>
-			<option value="arrayMinus">Substract Array</option>
-			<option value="arrayMulptiply">Mulptiply Array</option>
-			<option value="arrayDivide">Divide Array/option>
-			<option value="arrayRemainder">Remainder Array</option>
-			<option value="arrayPower">Power Array</option>
-			<option value="arrayBitwiseAnd">Bitwise And Array</option>
-			<option value="arrayBitwiseOr">Bitwise Or Array</option>
-			<option value="arrayBitwiseXOR">Bitwise XOR Array</option>
-			<option value="arrayLeftShift">Left Shift Array</option>
-			<option value="arrayRightShift">Right Shift Array</option>
-			<option value="arrayRightShiftZeroFill">Right Shift Zero Fill Array</option>
-			<option value="matrixMultiple">Matrix Multiple Arrays</option>
-			<option value="matrixSumAcross">Sum Columns</option>
-			<option value="matrixSumDown">Sum Rows</option>
- 			<option value="imageToArray">Image To Array</option> 
+			<option value="matrixAvgAcross"			>Average Columns</option>
+			<option value="matrixAvgDown"			>Average Rows</option>
+			<option value="arrayBitwiseAnd"			>Bitwise And Array</option>
+			<option value="arrayBitwiseOr"			>Bitwise Or Array</option>
+			<option value="arrayBitwiseXOR"			>Bitwise XOR Array</option>
+			<option value="matrixCorrelationAcross"	>Correlation Across Matrix</option>
+			<option value="matrixCorrelationDown"	>Correlation Down Matrix</option>
+			<option value="matrixCovarianceAcross"	>Covariance Across Matrix</option>
+			<option value="matrixCovarianceDown"	>Covariance Down Matrix</option>
+			<option value="arrayDivide"				>Divide Array/option>
+ 			<option value="imageToArray"			>Image To Array</option> 
+			<option value="arrayLeftShift"			>Left Shift Array</option>
+			<option value="matrixMultiple"			>Matrix Multiple Arrays</option>
+			<option value="matrixMomentsAcross"		>Moments Columns</option>
+			<option value="matrixMomentsDown"		>Moments Rows</option>
+			<option value="arrayMulptiply"			>Mulptiply Array</option>
+			<option value="matrixNormsAcross"		>Norms Columns</option>
+			<option value="matrixNormsDown"			>Norms Rows</option>
+			<option value="arrayPower"				>Power Array</option>
+			<option value="matrixRangeAcross"		>Range Columns</option>
+			<option value="matrixRangeDown"			>Range Rows</option>
+			<option value="arrayRemainder"			>Remainder Array</option>
+			<option value="matrixStatsAcross"		>Stats Columns</option>
+			<option value="matrixStatsDown"			>Stats Rows</option>
+			<option value="arrayMinus"				>Substract Array</option>
+			<option value="matrixSumAcross"			>Sum Columns</option>
+			<option value="matrixSumDown"			>Sum Rows</option>
+			<option value="arrayRightShift"			>Right Shift Array</option>
+			<option value="arrayRightShiftZeroFill"	>Right Shift Zero Fill Array</option>
+			<option value="matrixTranspose"			>Transpose Matrix</option>
+			<option value="matrixVarianceAcross"	>Variance Columns</option>
+			<option value="matrixVarianceDown"		>Variance Rows</option>
 		</select>
 	</div>
-
+	<div class="form-row form-row-http-in-columns show">
+		<label for="node-input-columnsProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Column List </label>
+		<input type="text" id="node-input-columnsProperty" placeholder="msg.payload">
+	</div>
 </script>
 
 <script type="text/x-red" data-help-name="gpunode">
-	<p>translates msg payload from one form to another</p>
 	<p>
-	Source/Target/Topic allows the override of the property to an expression which can reference RED, node or msg variables.
+	Checks to see if a GPU is available on system and provides functions that work off an array or image.
+	Its use only becomes effective on large arrays due to the overheads
+	</p>
+	<p>
+	Source/Target/Topic/Columns allows the override of the property to an expression which can reference RED, node or msg variables.
+	</p>
+	<p>
+	Array must have form [1,2,3], [[1,2],[3,4]] or [[[1,2],[3,4]],[[5,6],[7,8]]
+	</p>
+	<p>
+	Column list appears for actions that allow specific columns to be selected such as correlation.
 	</p>
 	<h3>Inputs</h3>
 	<dl class="message-properties">
@@ -97,7 +150,12 @@
 	</dl>
 	<h3>Ports</h3>
 	<dl class="message-properties">
+		<dt><span class="property-type">msg out</span></dt>
+		<dd>a message where msg.error details error during processing</dd>
 		<dt><span class="property-type">error</span></dt>
-		<dd>a message where msg.error details error during transformation</dd>
+		<dd>a message where msg.error details error during processing</dd>
+		<dt><span class="property-type">no gpu</span></dt>
+		<dd>Allow a flow to be built that will work if no GPU existss</dd>
+
 	</dl>
 </script>

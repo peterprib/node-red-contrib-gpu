@@ -26,8 +26,8 @@ The last allows CPU based equivalents to be implemented so flow can be hardware 
 
 Functions
 * Add Array
-* Substract Array
-* Mulptiply Array
+* Subtract Array
+* Multiply Array
 * Divide Array/option>
 * Remainder Array
 * Power Array
@@ -40,7 +40,12 @@ Functions
 * Matrix Multiple Arrays
 * Sum Columns
 * Sum Rows
+* Statistics average, standard deviation, skewness
+* Moments average,variance, skewness
+* Covariance 
+* Correlation Coefficients (Pearson)
 * Image To Array
+* Transpose
 
 ------------------------------------------------------------
 
@@ -53,6 +58,8 @@ Run the following command in the root directory of your Node-RED install or via 
 ------------------------------------------------------------
 
 # Version
+
+0.0.2 Loads of bug fixes.  Added more robust tests
 
 0.0.1 base
 
