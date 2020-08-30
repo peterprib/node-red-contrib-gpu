@@ -2,7 +2,6 @@ const logger = new (require("node-red-contrib-logger"))("gpunode");
 logger.sendInfo("Copyright 2020 Jaroslav Peter Prib");
 
 const GPU=require("./gpu");
-
 function evalFunction(id,mapping){
 	try{
 		return eval("(RED,node,msg,data)=>"+mapping);
@@ -23,7 +22,7 @@ module.exports = function (RED) {
 				(node.targetProperty||"msg.payload")+"=data;"+
 				(node.sendInFunction ? "" : "node.send(msg);")+
 				"}");
-			node.columns=evalFunction("columns",node.columnsProperty||"undefined");
+			node.getColumns=evalFunction("columns",node.columnsProperty||"undefined");
 		} catch(ex) {
 			node.error(ex);
 			node.status({fill:"red",shape:"ring",text:"Invalid setup "+ex.message});
@@ -41,7 +40,12 @@ module.exports = function (RED) {
 			}
 			node.on("input", function(msg) {
 				try{
-					node.setData(RED,node,msg,node.gpuFunction(node.getData1(RED,node,msg),node.getData2(RED,node,msg)));
+					const data1=node.getData1(RED,node,msg);
+					const columns=node.hasColumns?node.getColumns(RED,node,msg):null;
+					if(logger.active) logger.send({label:"input",columns:columns,blocks:node.blocks});
+					const results=node.hasSecondArgument?node.gpuFunction(data1,node.getData2(RED,node,msg),node.pipeline,node.blocks):
+						node.gpuFunction(data1,columns,node.pipeline,node.blocks);
+					node.setData(RED,node,msg,results);
 				} catch (ex) {
 					msg.error=node.action+ " " +ex.message;
 					node.error(msg.error);

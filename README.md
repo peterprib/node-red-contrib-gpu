@@ -22,6 +22,8 @@ Result will change depending on function and data types passed in arguments.
 There are 3 ports. One for success, second for failure and third if GPU not supported by hardware.
 The last allows CPU based equivalents to be implemented so flow can be hardware agnostic.
 
+Pipeline allows information to be retained in GPU between nodes minimising overhead of loading and unloading GPU.
+
 ![gpu node](documentation/gpu node.jpg "gpu node") 
 
 Functions
@@ -34,6 +36,7 @@ Functions
 * Bitwise And Array
 * Bitwise Or Array
 * Bitwise XOR Array
+* Load array into pipeline
 * Left Shift Array
 * Right Shift Array
 * Right Shift Zero Fill Array
@@ -58,6 +61,8 @@ Run the following command in the root directory of your Node-RED install or via 
 ------------------------------------------------------------
 
 # Version
+
+0.1.0 Even more bug fixes added pipelining, load 2d array into 3d using sizing, select columns for stats metrics
 
 0.0.2 Loads of bug fixes.  Added more robust tests
 

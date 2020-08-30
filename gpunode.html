@@ -6,11 +6,15 @@
 		defaults: {
 			name: {value: ""},
 			action: {value:"arrayAdd",required:true},
+			blocks:{value:1},
+			columnsProperty:{value:""},
+			columnsPropertyValid:{value:true,validate:(v)=>v},
+			hasSecondArgument:{value:false},
+			hasColumns:{value:false},
+			pipeline:{value:false},
 			source1Property:{value:"msg.payload"},
 			source2Property:{value:"msg.payload"},
-			targetProperty:{value:"msg.payload"},
-			columnsProperty:{value:""},
-			columnsPropertyValid:{value:true,validate:(v)=>v}
+			targetProperty:{value:"msg.payload"}
 		},
 		inputs: 1,
 		outputs: 3,
@@ -23,20 +27,20 @@
 			return this.name ||this.action|| "GPU";
 		},
 		oneditprepare: function() {
-			let node=this,hasSecondArgument,hasColumns;
-			const operands2=["arrayAdd","arrayMinus","arrayMulptiply","arrayDivide","arrayRemainder","arrayPower","arrayBitwiseAnd","arrayBitwiseOr","arrayBitwiseXOR","arrayLeftShift","arrayRightShift","arrayRightShiftZeroFill"];
-			const operandsColumns=["matrixNormsAcross","matrixNormsDown","matrixVarianceAcross","matrixVarianceDown","matrixCorrelationAcross","matrixCorrelationDown","matrixCovarianceAcross","matrixCovarianceDown"];
+			let node=this;
+			const operands2=["arrayAdd","arrayMinus","arrayMultiply","arrayDivide","arrayRemainder","arrayPower","arrayBitwiseAnd","arrayBitwiseOr","arrayBitwiseXOR","arrayLeftShift","arrayRightShift","arrayRightShiftZeroFill","matrixMultiple"];
+			const operandsColumns=["loadAcross","loadDown","matrixNormsAcross","matrixNormsDown","matrixVarianceAcross","matrixVarianceDown","matrixCorrelationAcross","matrixCorrelationDown","matrixCovarianceAcross","matrixCovarianceDown"];
 
 			$("#node-input-action").change(function() {
-				hasSecondArgument=operands2.includes($(this).val());
-				hasColumns=operandsColumns.includes($(this).val());
-				$(".form-row-http-in-source1Property")[hasSecondArgument?"show":"hide"]();
-				$(".form-row-http-in-columns")[hasColumns?"show":"hide"]();
+				node.hasSecondArgument=operands2.includes($(this).val());
+				node.hasColumns=operandsColumns.includes($(this).val());
+				$(".form-row-http-in-source2Property")[node.hasSecondArgument?"show":"hide"]();
+				$(".form-row-http-in-columns")[node.hasColumns?"show":"hide"]();
 			}).change();
 			$("#node-input-columnsProperty").change(function() {
 				node.columnsPropertyValid=true;
 				$(this).css({"background-color":"white"});
-				if(!hasColumns) return;
+				if(!node.hasColumns) return;
 				try{
 					const value=$(this).val()
 					if(value=="") return;
@@ -74,7 +78,7 @@
 		<label for="node-input-source1Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 1</label>
 		<input type="text" id="node-input-source1Property" placeholder="msg.payload">
 	</div>
-	<div class="form-row form-row-http-in-source1Property show">
+	<div class="form-row form-row-http-in-source2Property show">
 		<label for="node-input-source2Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 2</label>
 		<input type="text" id="node-input-source2Property" placeholder="msg.payload">
 	</div>
@@ -87,8 +91,8 @@
 		<label for="node-input-action"><i class="fa fa-list-ul"></i> Function </label>
 		<select id="node-input-action" placeholder="action">
 			<option value="arrayAdd">Add Array</option>
-			<option value="matrixAvgAcross"			>Average Columns</option>
-			<option value="matrixAvgDown"			>Average Rows</option>
+			<option value="matrixAvgAcross"			>Average Rows</option>
+			<option value="matrixAvgDown"			>Average Columns</option>
 			<option value="arrayBitwiseAnd"			>Bitwise And Array</option>
 			<option value="arrayBitwiseOr"			>Bitwise Or Array</option>
 			<option value="arrayBitwiseXOR"			>Bitwise XOR Array</option>
@@ -99,32 +103,43 @@
 			<option value="arrayDivide"				>Divide Array/option>
  			<option value="imageToArray"			>Image To Array</option> 
 			<option value="arrayLeftShift"			>Left Shift Array</option>
+			<option value="loadDown"				>Load Array</option>
+			<option value="loadAcross"				>Load Specific Rows</option>
 			<option value="matrixMultiple"			>Matrix Multiple Arrays</option>
-			<option value="matrixMomentsAcross"		>Moments Columns</option>
-			<option value="matrixMomentsDown"		>Moments Rows</option>
-			<option value="arrayMulptiply"			>Mulptiply Array</option>
-			<option value="matrixNormsAcross"		>Norms Columns</option>
-			<option value="matrixNormsDown"			>Norms Rows</option>
+			<option value="matrixMomentsAcross"		>Moments Rows</option>
+			<option value="matrixMomentsDown"		>Moments Columns</option>
+			<option value="arrayMultiply"			>Mulptiply Array</option>
+			<option value="matrixNormsAcross"		>Norms Rows</option>
+			<option value="matrixNormsDown"			>Norms Columns</option>
 			<option value="arrayPower"				>Power Array</option>
-			<option value="matrixRangeAcross"		>Range Columns</option>
-			<option value="matrixRangeDown"			>Range Rows</option>
+			<option value="matrixRangeAcross"		>Range Rows</option>
+			<option value="matrixRangeDown"			>Range Columns</option>
 			<option value="arrayRemainder"			>Remainder Array</option>
-			<option value="matrixStatsAcross"		>Stats Columns</option>
-			<option value="matrixStatsDown"			>Stats Rows</option>
+			<option value="matrixStatsAcross"		>Stats Rows</option>
+			<option value="matrixStatsDown"			>Stats Columns</option>
 			<option value="arrayMinus"				>Substract Array</option>
-			<option value="matrixSumAcross"			>Sum Columns</option>
-			<option value="matrixSumDown"			>Sum Rows</option>
+			<option value="matrixSumAcross"			>Sum Rows</option>
+			<option value="matrixSumDown"			>Sum Columns</option>
 			<option value="arrayRightShift"			>Right Shift Array</option>
 			<option value="arrayRightShiftZeroFill"	>Right Shift Zero Fill Array</option>
 			<option value="matrixTranspose"			>Transpose Matrix</option>
-			<option value="matrixVarianceAcross"	>Variance Columns</option>
-			<option value="matrixVarianceDown"		>Variance Rows</option>
+			<option value="matrixVarianceAcross"	>Variance Rows</option>
+			<option value="matrixVarianceDown"		>Variance Columns</option>
 		</select>
 	</div>
 	<div class="form-row form-row-http-in-columns show">
 		<label for="node-input-columnsProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Column List </label>
 		<input type="text" id="node-input-columnsProperty" placeholder="msg.payload">
 	</div>
+	<div class="form-row">
+		<input type="checkbox" id="node-input-pipeline" style="display: inline-block; width: auto; vertical-align: top;">
+		<label for="node-input-pipeline" style="width: auto">Pipeline</label>
+ 	</div>
+	<div class="form-row">
+		<label for="node-input-blocks"><i class="fa fa-tag"></i> Blocks</label>
+		<input type="number" min="1" max="1000000" step="1" id="node-input-blocks">
+	</div>
+
 </script>
 
 <script type="text/x-red" data-help-name="gpunode">
@@ -140,6 +155,12 @@
 	</p>
 	<p>
 	Column list appears for actions that allow specific columns to be selected such as correlation.
+	</p>
+	<p>
+	Pipeline allows values to be piped from one node to another to avoid overhead of loading and unloading GPU  
+	</p>
+	<p>
+	Blocks allows an array to be broken into another dimension.  Has perforance benefits plus handling normalised arays.  
 	</p>
 	<h3>Inputs</h3>
 	<dl class="message-properties">
