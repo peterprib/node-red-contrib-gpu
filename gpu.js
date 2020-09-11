@@ -107,8 +107,8 @@ function getDetailsColumns(a,columnsIn,blocks){
 function getDetailsRows(a,rowsIn,blocks){
 	if(rowsIn=="pipe") {
 		if(!("output" in a)) throw ("array not a pipe")
-		const rows=[],cl=a.output[1];
-		for(let i=0;i<cl;++i) rows.push(i);
+		const rows=[],rl=a.output[1];
+		for(let i=0;i<rl;++i) rows.push(i);
 		return {dimensions:{x:a.output[0],y:a.output[1],z:a.output[2]==1?null:a.output[2]},rows:rows}
 	}
 	if(!Array.isArray(rowsIn||[])) return rowsIn;
@@ -134,7 +134,7 @@ function loadColumns(a,columns,pipeline=false,blocks=1) {
 		return kernel(a,details.columns);
 	}
 	const size=details.dimensions.y/blocks;
-	if(Math.round(size)!==size) throw Error("array columns size "+details.dimensions.y +" not evenly divisible by "+blocks);
+	if(Math.round(size)!==size) throw Error("array column size (number of rows)"+details.dimensions.y +" not evenly divisible by "+blocks);
 	const options={pipeline:pipeline,output:{x:details.columns.length,y:details.dimensions.y/size,z:size},constants:{size:size}};
 	if(logger.active) logger.send({label:"loadColumns",options:options,details:details});
 	const kernel=gpu.createKernel(function loadColumnsBlockedFunction(a,columns) {
@@ -159,7 +159,7 @@ function loadRows(a,rows,pipeline=false,blocks=1) {
 		return kernel(a,details.rows);
 	}
 	const size=details.dimensions.x/blocks;
-	if(Math.round(size)!==size) throw Error("array row size "+details.dimensions.x +" not evenly divisible by "+blocks);
+	if(Math.round(size)!==size) throw Error("array row size (numner of columns) "+details.dimensions.x +" not evenly divisible by "+blocks);
 	const options={pipeline:pipeline,output:{y:details.rows.length,x:details.dimensions.x/size,z:size},constants:{size:size}};
 	if(logger.active) logger.send({label:"loadRows",options:options,details:details});
 	const kernel=gpu.createKernel(function loadColumnsBlockedFunction(a,rows) {
@@ -536,10 +536,10 @@ function matrixNormsColumns(a,columns,pipeline,blocks) {
 				skew=(sumCubed - 3*average*variance-average**3)/(variance*stdDev);
 			return [average,stdDev,skew];		},
 		function matrixNorm3DColumnFunction(a) {
-			const {thread:{x},constants:{size}}=this;
+			const {thread:{x,y},constants:{size}}=this;
 			let sum=0,sumSquared=0,sumCubed=0;
 			for(let i=0;i<size; i++) {
-				const v=a[i][x],v2=v*v,v3=v2*v;
+				const v=a[y][i][x],v2=v*v,v3=v2*v;
 				sum+=v;
 				sumSquared+=v2;
 				sumCubed+=v3;
@@ -639,27 +639,11 @@ function matrixCovarianceColumns(a,columns,pipeline=false,blocks=1){
 	if(logger.active) logger.send({label:"matrixCovarianceColumns",blocks:blocks,options:options,details:details});
 	return kernel(aRevised,mean);
 }
-function matrixCorrelationRows(a,rows,pipeline=false,blocks=1){
-	const details=getDetailsRows(a,rows),rowsCount=details.rows.length;
-	const aRevised=loadRows(a,rows,true,blocks);
-	const norms=matrixNormsRows(aRevised,"pipe",false,blocks),
-		kernel=gpu.createKernel(function matrixCorrelationRowsFunction(a,norms) {
-			const {thread:{x,y},constants:{size}}=this;
-			let correlation=0;
-			for(let i=0;i<size; i++)
-				correlation+=(a[x][i]-norms[x][0])*(a[y][i]-norms[y][0]);
-			return correlation/(size*norms[x][1]*norms[y][1]);
-		},
-		{pipeline:pipeline,output:{x:rowsCount,y:rowsCount},constants:{size:details.dimensions.x}}
-	);
-	return kernel(aRevised,norms);
-}
-
 function matrixCorrelationColumns(a,columns,pipeline=false,blocks=1){
 	const details=getDetailsColumns(a,columns),columnCount=details.columns.length;
 	const aRevised=loadColumns(a,details,true,blocks);
 	const norms=matrixNormsColumns(aRevised,"pipe",false);  // doesn't work if pipeline is returned
-	const options={pipeline:pipeline,output:{x:columnCount},constants:{size:details.dimensions.y}}
+	const options={pipeline:pipeline,output:{x:columnCount},constants:{size:details.dimensions.y/blocks}}
 	let kernel;
 	if(blocks==1) {blocks
 		options.output.y=columnCount;
@@ -667,7 +651,8 @@ function matrixCorrelationColumns(a,columns,pipeline=false,blocks=1){
 				const {thread:{x,y},constants:{size}}=this,avgX=norms[x][0],avgY=norms[y][0];
 				let correlation=0;
 				for(let i=0;i<size;i++) correlation+=(a[i][x]-avgX)*(a[i][y]-avgY);
-				return correlation/(size*norms[x][1]*norms[y][1]);
+//				return correlation/(size*norms[x][1]*norms[y][1])
+				return Math.round((correlation/(size*norms[x][1]*norms[y][1]))*1000)/1000;
 			},options);
 	} else {
 		options.output.y=blocks;
@@ -676,25 +661,39 @@ function matrixCorrelationColumns(a,columns,pipeline=false,blocks=1){
 				const {thread:{x,y,z},constants:{size}}=this,avgZX=norms[z][x][0],avgYX=norms[y][x][0];
 				let correlation=0;
 				for(let i=0;i<size;i++) correlation+=(a[z][i][x]-avgZX)*(a[y][i][x]-avgYX);
-				return correlation/(size*norms[z][x][1]*norms[y][x][1]);
+//				return [Math.round((correlation/(size*norms[z][x][1]*norms[y][x][1]))*1000)/1000,correlation,a[y][0][x],a[y][1][x]];
+				return Math.round((correlation/(size*norms[z][x][1]*norms[y][x][1]))*1000)/1000;
 			},options);
 	}
 	if(logger.active) logger.send({label:"matrixCorrelationColumns",blocks:blocks,options:options,details:details});
 	return kernel(aRevised,norms);
 }
-
-function matrixCorrelationColumnsold(a,columns,pipeline=false,blocks=1){
-	const details=getDetailsColumns(a,columns),columnsCount=details.columns.length;
-	const norms=matrixNormsColumns(a,columns,true),
-		kernel=gpu.createKernel(function matrixCorrelationColumns(a,norms) {
-			const {thread:{x,y},constants:{size}}=this;
-			let correlation=0;
-			for(let i=0;i<size; i++) correlation+=(a[i][x]-norms[x][0])*(a[i][y]-norms[y][0])
-			return correlation/(size*norms[x][1]*norms[y][1]);
-		},
-		{pipeline:pipeline,output:{x:columnsCount,y:columnsCount},constants:{size:details.dimensions.y}}
-	);
-	return kernel(a,norms);
+function matrixCorrelationRows(a,rows,pipeline=false,blocks=1){
+	const details=getDetailsRows(a,rows),rowCount=details.rows.length;
+	const aRevised=loadRows(a,details,true,blocks);
+	const norms=matrixNormsRows(aRevised,"pipe",false);  // doesn't work if pipeline is returned
+	const options={pipeline:pipeline,output:{x:rowCount},constants:{size:details.dimensions.x/blocks}}
+	let kernel;
+	if(blocks==1) {blocks
+		options.output.y=rowCount;
+		kernel=gpu.createKernel(function correlationRowFunction(a,norms) {
+				const {thread:{x,y},constants:{size}}=this,avgX=norms[x][0],avgY=norms[y][0];
+				let correlation=0;
+				for(let i=0;i<size;i++) correlation+=(a[x][i]-avgX)*(a[y][i]-avgY);
+				return Math.round(correlation/(size*norms[x][1]*norms[y][1])*1000)/1000;
+			},options);
+	} else {
+		options.output.y=blocks;
+		options.output.z=blocks;
+		kernel=gpu.createKernel(function correlationBlocksRowFunction(a,norms) {
+				const {thread:{x,y,z},constants:{size}}=this,avgZX=norms[z][x][0],avgYX=norms[y][x][0];
+				let correlation=0;
+				for(let i=0;i<size;i++) correlation+=(a[z][x][i]-avgZX)*(a[y][x][i]-avgYX);
+				return Math.round(correlation/(size*norms[z][x][1]*norms[y][x][1])*1000)/1000;
+			},options);
+	}
+	if(logger.active) logger.send({label:"matrixCorrelationRows",blocks:blocks,options:options,details:details});
+	return kernel(aRevised,norms);
 }
 function imageToArray(image) {
 	const kernel=gpu.createKernel(function(image) {
