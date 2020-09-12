@@ -134,7 +134,7 @@ function loadColumns(a,columns,pipeline=false,blocks=1) {
 		return kernel(a,details.columns);
 	}
 	const size=details.dimensions.y/blocks;
-	if(Math.round(size)!==size) throw Error("array column size (number of rows)"+details.dimensions.y +" not evenly divisible by "+blocks);
+	if(Math.round(size)!==size) throw Error("array column size (number of rows) "+details.dimensions.y +" not evenly divisible by "+blocks);
 	const options={pipeline:pipeline,output:{x:details.columns.length,y:details.dimensions.y/size,z:size},constants:{size:size}};
 	if(logger.active) logger.send({label:"loadColumns",options:options,details:details});
 	const kernel=gpu.createKernel(function loadColumnsBlockedFunction(a,columns) {

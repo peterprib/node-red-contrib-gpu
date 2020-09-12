@@ -4,7 +4,7 @@ logger.sendInfo("Copyright 2020 Jaroslav Peter Prib");
 const GPU=require("./gpu");
 function evalFunction(id,statements){
 	try{
-		const f=new Function("RED", "node","msg","data",statements);
+		const f=new Function("RED", "node","msg","data","try{ "+statements+ "} catch(ex) {throw Error('"+id +" '+ex.message)}");
 		if(logger.active) logger.send({label:"evalFunction",id:id,statements:statements,callableFunction:JSON.stringify(f)});
 		return f;
 	} catch(ex) {
@@ -16,8 +16,8 @@ module.exports = function (RED) {
 		RED.nodes.createNode(this, config);
 		const node=Object.assign(this,config);
 		try{
-			node.getData1=evalFunction("source1","return "+(node.source1Property||"msg.payload"));
-			node.getData2=evalFunction("source2","return "+(node.source2Property||"msg.payload"));
+			node.getData1=evalFunction("Argument 1","return "+(node.source1Property||"msg.payload"));
+			node.getData2=evalFunction("Argument 2","return "+(node.source2Property||"msg.payload"));
 //			node.deleteSource1Property=evalFunction("source1 delete","{delete "+(node.source1Property||"msg.payload")+";}");
 //			node.deleteSource2Property=evalFunction("source2 delete","{delete "+(node.source2Property||"msg.payload")+";}");
 			node.setData=evalFunction("target","{"+
@@ -48,7 +48,7 @@ module.exports = function (RED) {
 					if(!Number.isInteger(blocks)) throw Error("blocks '"+blocks +"' not an integer");
 					if(data1==null) throw Error("source data not found");
 					const columns=node.hasColumns?node.getColumns(RED,node,msg):null;
-					if(logger.active) logger.send({label:"input",columns:columns,blocks:blocks,data:data1});
+					if(logger.active) logger.send({label:"input",columns:columns,blocks:blocks,data:data1.length<10?data1:"*** too large"});
 					const results=node.hasSecondArgument?
 						node.gpuFunction(data1,node.getData2(RED,node,msg),node.pipeline,blocks):
 						node.gpuFunction(data1,columns,node.pipeline,blocks);

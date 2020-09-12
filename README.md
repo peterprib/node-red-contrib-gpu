@@ -62,9 +62,11 @@ Run the following command in the root directory of your Node-RED install or via 
 
 # Version
 
+0.1.1 Even more bug fixes, expanded blocking, pipeline, columns/rows and select column scope.
+
 0.1.0 Even more bug fixes added pipelining, load 2d array into 3d using sizing, select columns for stats metrics
 
-0.0.2 Loads of bug fixes.  Added more robust tests
+0.0.2 Loads of bug fixes. Added more robust tests
 
 0.0.1 base
 
