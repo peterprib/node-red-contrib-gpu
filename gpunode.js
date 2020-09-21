@@ -2,6 +2,30 @@ const logger = new (require("node-red-contrib-logger"))("gpunode");
 logger.sendInfo("Copyright 2020 Jaroslav Peter Prib");
 
 const GPU=require("./gpu");
+function isArray(a) {
+	return a instanceof Array
+		|| a instanceof Float32Array
+		|| a instanceof Float32Array
+		|| a instanceof Int16Array
+		|| a instanceof Int8Array
+		|| a instanceof Uint16Array
+		|| a instanceof Uint8Array;
+}
+function dumpData(v) {
+	if(isArray(v)) {
+		const l=Math.min(v.length,4);
+		let r=[]
+		for(let i=0;i<l;i++) r.push(dumpData(v[i]));
+		if(v.length>l) r.push("too large, first 4 of "+v.length) ;
+		return "["+r.join()+"]";
+	} else return JSON.stringify(v);
+}
+
+function error(node,message,shortMessage) {
+	if(logger.active) logger.error({message:message,shortMessage:shortMessage});
+	node.error(message);
+	node.status({fill:"red",shape:"ring",text:shortMessage||message});
+}
 function evalFunction(id,statements){
 	try{
 		const f=new Function("RED", "node","msg","data","try{ "+statements+ "} catch(ex) {throw Error('"+id +" '+ex.message)}");
@@ -27,8 +51,7 @@ module.exports = function (RED) {
 			node.getColumns=evalFunction("columns","return "+node.columnsProperty||"undefined");
 			node.getBlocks=evalFunction("blocks","return "+node.blocksProperty||"throw Error('blocks not defined')");
 		} catch(ex) {
-			node.error(ex);
-			node.status({fill:"red",shape:"ring",text:"Invalid setup "+ex.message});
+			error(node,"Invalid setup "+ex.message);
 			return;
 		}
 		node.gpu=new GPU();
@@ -36,9 +59,8 @@ module.exports = function (RED) {
 			try {
 				node.gpuFunction=node.gpu[node.action].bind(node.gpu);
 				if(!node.gpuFunction) throw Error("routine not found");
-			} catch (e) {
-				node.error(node.action+" "+e);
-				this.status({fill:"red",shape:"ring",text:node.action});
+			} catch (ex) {
+				error(node,node.action+" "+ex.message);
 				return;
 			}
 			node.on("input", function(msg) {
@@ -48,22 +70,21 @@ module.exports = function (RED) {
 					if(!Number.isInteger(blocks)) throw Error("blocks '"+blocks +"' not an integer");
 					if(data1==null) throw Error("source data not found");
 					const columns=node.hasColumns?node.getColumns(RED,node,msg):null;
-					if(logger.active) logger.send({label:"input",columns:columns,blocks:blocks,data:data1.length<10?data1:"*** too large"});
+					if(logger.active) logger.send({label:"input",columns:columns,blocks:blocks,data:dumpData(data1)});
 					const results=node.hasSecondArgument?
-						node.gpuFunction(data1,node.getData2(RED,node,msg),node.pipeline,blocks):
+						node.gpuFunction(data1,node.getData2(RED,node,msg),columns,node.pipeline,blocks):
 						node.gpuFunction(data1,columns,node.pipeline,blocks);
-					node.setData(RED,node,msg,results);
+	//					if(logger.active) logger.send({label:"input",results:dumpData(results)});
+						node.setData(RED,node,msg,results);
 				} catch (ex) {
 					msg.error=node.action+ " " +ex.message;
-					node.error(msg.error);
-					this.status({fill:"red",shape:"ring",text:"Error(s)"});
+					error(node,msg.error,"Error(s)");
 					node.send([null,msg]);
 				}
 			node.status({fill:"green",shape:"ring",text:"Ready"});
 			});
 		} else {
-			node.error("GPU not supported");
-			node.status({fill:"red",shape:"ring",text:"GPU not supported"});
+			error(node,"GPU not supported");
 			node.on("input", function(msg) {
 				node.send([null,null,msg]); // bypass port
 			});

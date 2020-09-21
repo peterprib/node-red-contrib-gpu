@@ -751,7 +751,7 @@ function gpuFunctions() {
 	return this;
 };
 
-function evalOperand(operand,pipeline=false){
+function evalOperand(operand){
 	const function1D=eval("(function(a,b) {const {thread:{x}}=this;return a[x]"+operand+"b[x];})");
 	const function2D=eval("(function(a,b) {const {thread:{x,y}}=this;return a[y][x]"+operand+"b[y][x];})");
 	const function3D=eval("(function(a,b) {const {thread:{x,y,z}}=this;return a[z][y][x]"+operand+"b[z][y][x];})");
@@ -842,4 +842,5 @@ gpuFunctions.prototype.loadRows=loadRows;
 gpuFunctions.prototype.loadRowsDelta=loadRowsDelta;
 gpuFunctions.prototype.imageToArray=imageToArray;
 gpuFunctions.prototype.isGPUSupported=GPU.isGPUSupported?()=>true:()=>false;
+gpuFunctions.prototype.isArray=isArray
 module.exports=gpuFunctions;

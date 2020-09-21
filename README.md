@@ -63,6 +63,8 @@ Run the following command in the root directory of your Node-RED install or via 
 
 # Version
 
+0.2.1 fix bug with pipeline incorrectly call in certain situations
+
 0.2.0 Load array with deltas and fix bug with blocking
 
 0.1.1 Even more bug fixes, expanded blocking, pipeline, columns/rows and select column scope.

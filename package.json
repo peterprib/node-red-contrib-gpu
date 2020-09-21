@@ -1,6 +1,6 @@
 {
 	"name": "node-red-contrib-gpu",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Node-RED GPU functions",
 	"main": "gpu.js",
 	"dependencies": {
@@ -22,7 +22,7 @@
 		"node-red-node-test-helper": "*"
 	},
 	"scripts": {
-		"test": "mocha \"test/**/*.js\"",
+		"test": "mocha \"test/**/t*.js\"",
 		"lint": "eslint --ext .js ./",
 		"lint-fix": "eslint --fix --ext .js ./"
 	},
