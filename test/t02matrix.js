@@ -19,7 +19,8 @@ function testArrayFunction(f,l="az2r2c2,az2r2c2,1",a=az2r2c2,b=az2r2c2,r){
 	const callFunction="array"+f,label=callFunction+" "+l;
 	it(label, function(done) {
 		if(r){	//using stringify as compare using Float32Array fails due to prototypes
-			assert.equal(JSON.stringify(r),JSON.stringify(gpu[callFunction](a,b)));
+			assert.equal(gpu.arrayCleanse(r),gpu.arrayCleanse(gpu[callFunction](a,b)));
+//			assert.equal(JSON.stringify(r),JSON.stringify(gpu[callFunction](a,b)));
 		} else {
 			log(label,gpu[callFunction](a,b));
 		}
@@ -29,7 +30,9 @@ function testArrayFunction(f,l="az2r2c2,az2r2c2,1",a=az2r2c2,b=az2r2c2,r){
 }
 function test(l,a,e){
 	it(l, function(done) {
-		assert.equal(JSON.stringify(e),JSON.stringify(a));
+		assertEq(gpu.arrayCleanse(e),gpu.arrayCleanse(a));
+//		assert.equal(gpu.arrayCleanse(e),gpu.arrayCleanse(a));
+//		assert.equal(JSON.stringify(e),JSON.stringify(a));
 		gpu.destroy();
 		done();
 	});
@@ -38,6 +41,7 @@ function assertEq(a,e){
 	assert.equal(JSON.stringify(e),JSON.stringify(a));
 }
 describe('matrix', function() {
+
 	it('load Columns', function(done) {
 		assertEq(gpu.load(ar4c4),[{"0":1,"1":2,"2":3,"3":4},{"0":11,"1":12,"2":13,"3":14},{"0":21,"1":22,"2":23,"3":24},{"0":31,"1":32,"2":33,"3":34}]);
 		assertEq(gpu.loadColumns(ar4c4,[2,3]),[{"0":3,"1":4},{"0":13,"1":14},{"0":23,"1":24},{"0":33,"1":34}]);
@@ -188,4 +192,51 @@ describe('matrix', function() {
 	test("loadColumns ar4c2 c2 b2",gpu.loadColumns(ar4c3,[0,2],null,2),[[{"0":1,"1":0},{"0":1,"1":3}],[{"0":10,"1":30},{"0":100,"1":300}]]);
 	test("matrixNormsColumns ar4c2 c2 b2",gpu.matrixNormsColumns(ar4c3,[0,2],null,2),[[{"0":1,"1":0,"2":null},{"0":1.5,"1":1.5,"2":4},{"0":5.5,"1":4.5,"2":5.49245548248291}],[{"0":55,"1":45,"2":5.49245548248291},{"0":165,"1":135,"2":5.492455005645752},{"0":55,"1":45,"2":5.49245548248291}]]);
 	test("matrixCorrelationColumns ar4c2 c2 b2",gpu.matrixCorrelationColumns(ar4c3,[0,2],null,2),[[{"0":null,"1":1},{"0":null,"1":null}],[{"0":null,"1":null},{"0":null,"1":null}]]);
+
+	test("matrixNormaliseColumns ar3c3",gpu.matrixNormaliseColumns(ar3c3)[{"0":-0.3636363744735718,"1":-0.3636363744735718,"2":-0.3636363446712494},{"0":-0.27272728085517883,"1":-0.27272728085517883,"2":-0.27272728085517883},{"0":0.6363636255264282,"1":0.6363636255264282,"2":0.6363636255264282}]);
+	test("matrixNormaliseColumns ar4c3",gpu.matrixNormaliseColumns(ar4c3),[{"0":-0.27272728085517883,"1":-0.2775000035762787,"2":-0.2775000035762787},{"0":-0.27272728085517883,"1":-0.26749998331069946,"2":-0.26750001311302185},{"0":-0.1818181872367859,"1":-0.17749999463558197,"2":-0.17750000953674316},{"0":0.7272727489471436,"1":0.7224999666213989,"2":0.7225000262260437}]);
+	test("matrixNormaliseColumns ar4c3 blocks 2",gpu.matrixNormaliseColumns(ar4c3,null,false,2),[[{"0":null,"1":null,"2":null},{"0":0,"1":0.5,"2":1}],[{"0":null,"1":null,"2":null},{"0":49.5,"1":99.5,"2":149.5}]]);
+	test("matrixNormaliseColumns ar3c4",gpu.matrixNormaliseColumns(ar3c4),[{"0":-0.36666667461395264,"1":-0.36666667461395264,"2":-0.36666664481163025,"3":-0.36666667461395264},{"0":-0.2666666805744171,"1":-0.2666666805744171,"2":-0.2666666507720947,"3":-0.2666666805744171},{"0":0.6333333253860474,"1":0.6333333253860474,"2":0.6333333253860474,"3":0.6333333253860474}]);
+
+	test("matrixNormaliseRows ar3c3",gpu.matrixNormaliseRows(ar3c3)[{"0":-0.5,"1":0,"2":0.5},{"0":-0.5,"1":0,"2":0.5},{"0":-0.5,"1":0,"2":0.5}]);[{"0":-0.36666667461395264,"1":-0.36666667461395264,"2":-0.36666664481163025,"3":-0.36666667461395264},{"0":-0.2666666805744171,"1":-0.2666666805744171,"2":-0.2666666507720947,"3":-0.2666666805744171},{"0":0.6333333253860474,"1":0.6333333253860474,"2":0.6333333253860474,"3":0.6333333253860474}]
+	test("matrixNormaliseRows ar4c3",gpu.matrixNormaliseRows(ar4c3),[{"0":0.6666666269302368,"1":-0.3333333432674408,"2":-0.3333333432674408},{"0":-0.5,"1":0,"2":0.5},{"0":-0.5,"1":0,"2":0.5},{"0":-0.5,"1":0,"2":0.5}]);
+	test("matrixNormaliseRows ar3c4 blocks 2",gpu.matrixNormaliseRows(ar3c4,null,false,2),[[{"0":null,"1":-1.5,"2":-1.399999976158142},{"0":null,"1":0.5,"2":-0.5}],[{"0":null,"1":-1.5,"2":-1.2000000476837158},{"0":null,"1":2.5,"2":1.5}]]);
+	test("matrixNormaliseRows ar3c4",gpu.matrixNormaliseRows(ar3c4),[{"0":null,"1":null,"2":null,"3":null},{"0":-0.4999999701976776,"1":-0.1666666567325592,"2":0.1666666567325592,"3":0.4999999701976776},{"0":-0.4999999701976776,"1":-0.1666666567325592,"2":0.1666666567325592,"3":0.4999999701976776}]);
+
+	test("matrixNormaliseRows ar1c8 blocks 2",gpu.matrixNormaliseRows([[1,2,3,4,1,2,3,4,]],null,false,2),[[{"0":-0.5,"1":0.5,"2":-0.5,"3":0.5}],[{"0":-0.5,"1":0.5,"2":-0.5,"3":0.5}]]);
+	test("matrixNormaliseColumns blocks 2",gpu.matrixNormaliseColumns([[1],[2],[3],[4],[1],[2],[3],[4]],null,false,2),[[{"0":-0.5},{"0":0.5},{"0":-0.5},{"0":0.5}],[{"0":-0.5},{"0":0.5},{"0":-0.5},{"0":0.5}]]);
+
+	const ar3c4b2=[[0,0],[0,0],[1,2],[3,4],[10,20],[30,40]];
+	const ar3c4zb2=[[[0,0],[1,2],[10,20]],[[0,0],[3,4],[30,40]]];
+	test("loadRows ar3c4",gpu.loadRows(ar3c4,null,false,2),ar3c4zb2);
+
+	ar3c4b2stats=[[[0,0,0,0],[1,2,1.5,0.5],[10,20,15,5]],
+						[[0,0,0,0],[3,4,3.5,0.5],[30,40,35,5]]];
+	
+	test("matrixStatsRows ar3c4 b2",gpu.matrixStatsRows(ar3c4,null,false,2),ar3c4b2stats);
+
+	const loadar3c4pipe=gpu.loadRows(ar3c4,null,false,2);
+	test("matrixStatsRows ar3c4pipe",gpu.matrixStatsRows(loadar3c4pipe),ar3c4b2stats);
+	test("matrixStatsRows ar3c4z",gpu.matrixStatsRows(ar3c4zb2),ar3c4b2stats);
+	test("compare",gpu.matrixStatsRows(loadar3c4pipe),gpu.matrixStatsRows(ar3c4zb2))
+    
+	test("matrixNormaliseRows ar3c4b2",gpu.matrixNormaliseRows(ar3c4b2),[[null,null],[null,null],[-0.5,0.5],[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]]);
+	test("matrixNormaliseRows ar3c4 blocks 2",gpu.matrixNormaliseRows(ar3c4,null,false,2),[[[null,null],[-0.5,0.5],[-0.5,0.5]],[[null,null],[-0.5,0.5],[-0.5,0.5]]]);
+
+	const ar4c3zb2=[[[1,0,0],[1,2,3]],
+								 [ [10,20,30],[100,200,300]]];
+	const ar4c3b2stats=[[[1,1,1,0],[0,2,1,1],[0,3,1.5,1.5]],[[10,100,55,45],[20,200,110,90],[30,300,165,135]]];
+	test("loadColumns ar4c3",gpu.loadColumns(ar4c3,null,false,2),ar4c3zb2);
+	const ar4czb2ColStats=gpu.matrixStatsColumns(ar4c3zb2);;
+	const ar4cNorm={"results":[[-0.27272728085517883,-0.2775000035762787,-0.2775000035762787],[-0.27272728085517883,-0.26749998331069946,-0.26750001311302185],[-0.1818181872367859,-0.17749999463558197,-0.17750000953674316],[0.7272727489471436,0.7224999666213989,0.7225000262260437]],
+			"stats":[[1,100,28,41.73128128051758],[0,200,55.5,83.7899169921875],[0,300,83.25,125.68487548828125]]}
+	test("compare stats",ar4czb2ColStats,ar4c3b2stats);
+
+	const loadar4c3pipe=gpu.loadColumns(ar4c3,null,false,2);
+	test("matrixStatsRows ar4c3pipe",gpu.matrixStatsColumns(loadar4c3pipe),ar4c3b2stats);
+
+	test("matrixNormaliseColumns ar4c3",gpu.matrixNormaliseColumns(ar4c3,null,false,1,true),ar4cNorm);
+	test("matrixNormaliseColumns ar4c3 blocks 2",gpu.matrixNormaliseColumns(ar4c3,null,false,2,true),{"results":[[[null,-0.5,-0.4999999701976776],[null,0.5,0.4999999701976776]],[[-0.4999999701976776,-0.4999999701976776,-0.5],[0.4999999701976776,0.4999999701976776,0.5]]],"stats":ar4c3b2stats});
+
+	
 }); 

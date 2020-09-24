@@ -28,28 +28,39 @@ Pipeline allows information to be retained in GPU between nodes minimising overh
 
 Functions
 * Add Array
-* Subtract Array
-* Multiply Array
-* Divide Array/option>
-* Remainder Array
-* Power Array
 * Bitwise And Array
 * Bitwise Or Array
 * Bitwise XOR Array
+* Co-variance 
+* Correlation Coefficients (Pearson)
+* Divide Array/option>
+* Left Shift Array
 * Load array into pipeline
 * load array with deltas
-* Left Shift Array
+* Matrix Multiple Arrays
+* Moments average,variance, skewness
+* Multiply Array
+* Normalise
+* Power Array
+* Remainder Array
 * Right Shift Array
 * Right Shift Zero Fill Array
-* Matrix Multiple Arrays
+* Statistics average, standard deviation, skewness
+* Subtract Array
 * Sum Columns
 * Sum Rows
-* Statistics average, standard deviation, skewness
-* Moments average,variance, skewness
-* Covariance 
-* Correlation Coefficients (Pearson)
 * Image To Array
 * Transpose
+
+------------------------------------------------------------
+
+# REQUIRE
+
+Can be included and gives access to other functions
+
+* isGPUSupported
+* isArray
+* arrayCleanse
 
 ------------------------------------------------------------
 
@@ -62,6 +73,8 @@ Run the following command in the root directory of your Node-RED install or via 
 ------------------------------------------------------------
 
 # Version
+
+0.3.0 Fix blocking issues, add normalized data
 
 0.2.1 fix bug with pipeline incorrectly call in certain situations
 

@@ -34,6 +34,21 @@ function checkObject(a) {
 	if(isArray(a)) return a.length;
 	throw Error("columns must be array");
 }
+function arrayCleanse(a) {
+	if(!a) return a;
+	if(a instanceof Array) 	return a.map(c=>arrayCleanse(c));
+	if(isArray(a)) {
+		const r=[]; 
+		for(let i=0;i<a.length;i++) r.push(a[i]);
+		return r;
+	}
+	if(typeof a =="object") {
+		const r={}; 
+		for (const p in a) r[p]=arrayCleanse(a[p]);
+		return r;
+	}
+	return a;
+}
 function sizeBlocked(v,blocks) {
 	const r=v/blocks;
 	if(Number.isInteger(r)) return r; 
@@ -58,32 +73,46 @@ function arrayDimensions(a,blocks=1,yBlocks=1) {
 	};
 	throw Error("Not an array ");
 }
-function frameworkRows(a,rows,pipeline=false,blocks=1,function1,functionMany) {
-	const details=getDetailsRows(a,rows,blocks);
-	const options={pipeline:pipeline,output:{x:details.dimensions.y},constants:{size:details.dimensions.x}}
-	if(blocks==1) {
-		if(logger.active) logger.send({label:"frameworkRows",blocks:blocks,options:options,details:details});
-		const kernel=gpu.createKernel(function1,options);
-		return kernel(a,details.rows);
-	} else {
-		options.output.y=blocks;
-		const aRevised=loadRows(a,rows,true,blocks);
-		if(logger.active) logger.send({label:"frameworkRows",blocks:blocks,options:options,details:details});
-		const kernel=gpu.createKernel(functionMany,options);
-		return kernel(aRevised);
-	}
-}
 function frameworkColumns(a,columns,pipeline=false,blocks=1,function1,functionMany) {
 	const details=getDetailsColumns(a,columns,blocks);
 	const options={pipeline:pipeline,output:{x:details.dimensions.x},constants:{size:details.dimensions.y}}
 	if(blocks==1) {
+		if(details.dimensions.z) {
+			options.output.x=details.dimensions.x;
+			options.output.y=details.dimensions.z;
+			if(logger.active) logger.send({label:"frameworkColumns many",blocks:blocks,options:options,details:details});
+			const kernel=gpu.createKernel(functionMany,options);
+			return kernel(a);
+		}
 		if(logger.active) logger.send({label:"frameworkColumns",blocks:blocks,options:options,details:details});
 		const kernel=gpu.createKernel(function1,options);
 		return kernel(a,details.columns);
 	} else {
 		options.output.y=blocks;
 		const aRevised=loadColumns(a,columns,true,blocks);
-		if(logger.active) logger.send({label:"frameworkColumns",blocks:blocks,options:options,details:details});
+		if(logger.active) logger.send({label:"frameworkColumns many",blocks:blocks,options:options,details:details});
+		const kernel=gpu.createKernel(functionMany,options);
+		return kernel(aRevised);
+	}
+}
+function frameworkRows(a,rows,pipeline=false,blocks=1,function1,functionMany) {
+	const details=getDetailsRows(a,rows,blocks);
+	const options={pipeline:pipeline,output:{x:details.dimensions.y},constants:{size:details.dimensions.x}}
+	if(blocks==1) {
+		if(details.dimensions.z) {
+			options.output.x=details.dimensions.y;
+			options.output.y=details.dimensions.z;
+			const kernel=gpu.createKernel(functionMany,options);
+			if(logger.active) logger.send({label:"frameworkRows many",blocks:blocks,options:options,details:details});
+			return kernel(a);
+		}
+		if(logger.active) logger.send({label:"frameworkRows",blocks:blocks,options:options,details:details});
+		const kernel=gpu.createKernel(function1,options);
+		return kernel(a,details.rows);
+	} else {
+		options.output.y=blocks;
+		const aRevised=loadRows(a,rows,true,blocks);
+		if(logger.active) logger.send({label:"frameworkRows many",blocks:blocks,options:options,details:details});
 		const kernel=gpu.createKernel(functionMany,options);
 		return kernel(aRevised);
 	}
@@ -109,7 +138,9 @@ function getDetailsRows(a,rowsIn,blocks){
 		if(!("output" in a)) throw ("array not a pipe")
 		const rows=[],rl=a.output[1];
 		for(let i=0;i<rl;++i) rows.push(i);
-		return {dimensions:{x:a.output[0],y:a.output[1],z:a.output[2]==1?null:a.output[2]},rows:rows}
+		const details={dimensions:{x:a.output[0],y:a.output[1],z:a.output[2]==1?null:a.output[2]},rows:rows};
+		if(logger.active) logger.send({label:"getDetailsRows pipe ",output:a.output,details:details});
+		return details
 	}
 	if(!Array.isArray(rowsIn||[])) return rowsIn;
 	const dimensions=arrayDimensions(a,null,blocks);
@@ -390,40 +421,6 @@ function matrixRangeColumns(a,columns,pipeline,blocks) {
 		}
 	);
 }
-function matrixStatsRows(a,rows,pipeline,blocks) {
-	return frameworkRows(a,rows,pipeline,blocks,
-		function matrixStats2DRowssFunction(a,rows) {
-			const {thread:{x},constants:{size}}=this,row=rows[x];
-			let sum=0,sumSquared=0,min=a[row][0],max=min;
-			for(let i=0;i<size; i++) {
-				const v=a[row][i];
-				sum+=v;
-				sumSquared+=v**2;
-				if(v<min) min=v
-				else if(v>max) max=v;
-			}
-			const range=max-min,
-				average=sum/size,
-				variance=(sumSquared/size)-average**2;
-			return [min,max,average,Math.sqrt(variance)];
-		},
-		function matrixStats3DRowFunction(a) {
-			const {thread:{x,y},constants:{size}}=this;
-			let sum=0,sumSquared=0,min=a[y][0][x],max=min;
-			for(let i=0;i<size; i++) {
-				const v=a[y][i][x];
-				sum+=v;
-				sumSquared+=v**2;
-				if(v<min) min=v
-				else if(v>max) max=v;
-			}
-			const range=max-min,
-				average=sum/size,
-				variance=(sumSquared/size)-average**2;
-			return [min,max,average,Math.sqrt(variance)];
-		}
-	);
-}
 function matrixStatsColumns(a,columns,pipeline,blocks) {
 	return frameworkColumns(a,columns,pipeline,blocks,
 		function matrixStats2DColumnFunction(a,columns) {
@@ -446,6 +443,40 @@ function matrixStatsColumns(a,columns,pipeline,blocks) {
 			let sum=0,sumSquared=0,min=a[y][0][x],max=min;
 			for(let i=0;i<size; i++) {
 				const v=a[y][i][x];
+				sum+=v;
+				sumSquared+=v**2;
+				if(v<min) min=v
+				else if(v>max) max=v;
+			}
+			const range=max-min,
+				average=sum/size,
+				variance=(sumSquared/size)-average**2;
+			return [min,max,average,Math.sqrt(variance)];
+		}
+	);
+}
+function matrixStatsRows(a,rows,pipeline,blocks) {
+	return frameworkRows(a,rows,pipeline,blocks,
+		function matrixStats2DRowssFunction(a,rows) {
+			const {thread:{x},constants:{size}}=this,row=rows[x];
+			let sum=0,sumSquared=0,min=a[row][0],max=min;
+			for(let i=0;i<size; i++) {
+				const v=a[row][i];
+				sum+=v;
+				sumSquared+=v**2;
+				if(v<min) min=v
+				else if(v>max) max=v;
+			}
+			const range=max-min,
+				average=sum/size,
+				variance=(sumSquared/size)-average**2;
+			return [min,max,average,Math.sqrt(variance)];
+		},
+		function matrixStats3DRowFunction(a) {
+			const {thread:{x,y},constants:{size}}=this;
+			let sum=0,sumSquared=0,min=a[y][x][0],max=min;
+			for(let i=0;i<size; i++) {
+				const v=a[y][x][i];
 				sum+=v;
 				sumSquared+=v**2;
 				if(v<min) min=v
@@ -514,82 +545,6 @@ function matrixVarianceColumns(a,columns,pipeline,blocks) {
 		}
 	);
 }
-function matrixNormsRows(a,rows,pipeline=false,blocks=1) {
-	const details=getDetailsRows(a,rows);
-	const kernel=gpu.createKernel(function matrixNormsRowFunction(a,rows) {
-			const {thread:{x},constants:{size}}=this,row=rows[x];
-			let sum=0,sumSquared=0,sumCubed=0;
-			for(let i=0;i<size; i++) {
-				const v=a[row][i],v2=v*v,v3=v2*v;
-				sum+=v;
-				sumSquared+=v2;
-				sumCubed+=v3;
-			}
-			const average=sum/size,
-				variance=(sumSquared/size)-average**2,
-				stdDev=Math.sqrt(variance),
-				skew=(sumCubed - 3*average*variance-average**3)/(variance*stdDev);
-			return [average,stdDev,skew];
-		},
-		{pipeline:pipeline,output:{x:details.rows.length},constants:{size:details.dimensions.x},returnType: 'Array(3)'}
-	);
-	return kernel(a,details.rows);
-}
-function matrixMomentsRows(a,rows,pipeline=false,blocks=1) {
-	const details=getDetailsRows(a,rows);
-	const kernel=gpu.createKernel(function matrixMoments2DRowFunction(a,rows) {
-			const {thread:{x},constants:{size}}=this,row=rows[x];
-			let sum=0,sumSquared=0,sumCubed=0;
-			for(let i=0;i<size; i++) {
-				const v=a[row][i],v2=v*v,v3=v2*v;
-				sum+=v;
-				sumSquared+=v2;
-				sumCubed+=v3;
-			}
-			const average=sum/size,
-				variance=(sumSquared/size)-average**2,
-				stdDev=Math.sqrt(variance),
-				skew=(sumCubed-3*average*variance-average**3)/(variance*stdDev);
-			return [average,variance,skew];
-		},
-		{pipeline:pipeline,output:{x:details.rows.length},constants:{size:details.dimensions.x},returnType: 'Array(3)'}
-	);
-	return kernel(a,details.rows);
-}
-
-function matrixNormsColumns(a,columns,pipeline,blocks) {
-	return frameworkColumns(a,columns,pipeline,blocks,
-		function matrixNorm2DColumnFunction(a,columns) {
-			const {thread:{x},constants:{size}}=this,column=columns[x];
-			let sum=0,sumSquared=0,sumCubed=0;
-			for(let i=0;i<size; i++) {
-				const v=a[i][column],v2=v*v,v3=v2*v;
-				sum+=v;
-				sumSquared+=v2;
-				sumCubed+=v3;
-			}
-			const average=sum/size,
-				variance=(sumSquared/size)-average*average,
-				stdDev=Math.sqrt(variance),
-				skew=(sumCubed - 3*average*variance-average**3)/(variance*stdDev);
-			return [average,stdDev,skew];		},
-		function matrixNorm3DColumnFunction(a) {
-			const {thread:{x,y},constants:{size}}=this;
-			let sum=0,sumSquared=0,sumCubed=0;
-			for(let i=0;i<size; i++) {
-				const v=a[y][i][x],v2=v*v,v3=v2*v;
-				sum+=v;
-				sumSquared+=v2;
-				sumCubed+=v3;
-			}
-			const average=sum/size,
-				variance=(sumSquared/size)-average*average,
-				stdDev=Math.sqrt(variance),
-				skew=(sumCubed - 3*average*variance-average**3)/(variance*stdDev);
-			return [average,stdDev,skew];
-		}
-	);
-}
 function matrixMomentsColumns(a,columns,pipeline,blocks) {
 	return frameworkColumns(a,columns,pipeline,blocks,
 		function matrixMoments2DColumnFunction(a,columns) {
@@ -624,31 +579,80 @@ function matrixMomentsColumns(a,columns,pipeline,blocks) {
 		}
 	);
 }
-function matrixCovarianceRows(a,rows,pipeline=false,blocks=1){
-	const details=getDetailsRows(a,rows),rowCount=details.rows.length;
-	const aRevised=loadColumns(a,rows,true,blocks);
-	const mean=matrixAvgRows(aRevised,details,false,blocks);
-	const options={pipeline:pipeline,output:{x:rowCount},constants:{size:details.dimensions.x}}
-	let kernel;
-	if(blocks==1) {
-		options.output.y=rowCount;
-		 kernel=gpu.createKernel(function matrixCovarianceRows(a,mean) {
+function matrixMomentsRows(a,rows,pipeline=false,blocks=1) {
+	const details=getDetailsRows(a,rows);
+	const kernel=gpu.createKernel(function matrixMoments2DRowFunction(a,rows) {
+			const {thread:{x},constants:{size}}=this,row=rows[x];
+			let sum=0,sumSquared=0,sumCubed=0;
+			for(let i=0;i<size; i++) {
+				const v=a[row][i],v2=v*v,v3=v2*v;
+				sum+=v;
+				sumSquared+=v2;
+				sumCubed+=v3;
+			}
+			const average=sum/size,
+				variance=(sumSquared/size)-average**2,
+				stdDev=Math.sqrt(variance),
+				skew=(sumCubed-3*average*variance-average**3)/(variance*stdDev);
+			return [average,variance,skew];
+		},
+		{pipeline:pipeline,output:{x:details.rows.length},constants:{size:details.dimensions.x},returnType: 'Array(3)'}
+	);
+	return kernel(a,details.rows);
+}
+function matrixNormsColumns(a,columns,pipeline,blocks) {
+	return frameworkColumns(a,columns,pipeline,blocks,
+		function matrixNorm2DColumnFunction(a,columns) {
+			const {thread:{x},constants:{size}}=this,column=columns[x];
+			let sum=0,sumSquared=0,sumCubed=0;
+			for(let i=0;i<size; i++) {
+				const v=a[i][column],v2=v*v,v3=v2*v;
+				sum+=v;
+				sumSquared+=v2;
+				sumCubed+=v3;
+			}
+			const average=sum/size,
+				variance=(sumSquared/size)-average*average,
+				stdDev=Math.sqrt(variance),
+				skew=(sumCubed - 3*average*variance-average**3)/(variance*stdDev);
+			return [average,stdDev,skew];		},
+		function matrixNorm3DColumnFunction(a) {
 			const {thread:{x,y},constants:{size}}=this;
-			let covariance=0;
-			for(let i=0;i<size; i++) covariance+=a[x][i]*a[y][i];
-			return covariance/size-mean[x]*mean[y];
-			},options);
-	} else {
-		options.output.y=blocks;
-		options.output.z=blocks;
-		kernel=gpu.createKernel(function covarianceBlocksRowFunction(a,mean) {
-			const {thread:{x,y,z},constants:{size}}=this;
-			let covariance=0;
-			for(let i=0;i<size; i++) covariance+=a[z][x][i]*a[y][x][i];
-			return covariance/size-mean[z][x]*mean[y][x];
-		},options);
-	}
-	return kernel(aRevised,mean);
+			let sum=0,sumSquared=0,sumCubed=0;
+			for(let i=0;i<size; i++) {
+				const v=a[y][i][x],v2=v*v,v3=v2*v;
+				sum+=v;
+				sumSquared+=v2;
+				sumCubed+=v3;
+			}
+			const average=sum/size,
+				variance=(sumSquared/size)-average*average,
+				stdDev=Math.sqrt(variance),
+				skew=(sumCubed - 3*average*variance-average**3)/(variance*stdDev);
+			return [average,stdDev,skew];
+		}
+	);
+}
+function matrixNormsRows(a,rows,pipeline=false,blocks=1) {   //????  need to convert to framework
+	const details=getDetailsRows(a,rows);
+	const kernel=gpu.createKernel(function matrixNormsRowFunction(a,rows) {
+			const {thread:{x},constants:{size}}=this,row=rows[x];
+			let sum=0,sumSquared=0,sumCubed=0;
+			for(let i=0;i<size; i++) {
+				const v=a[row][i],v2=v*v,v3=v2*v;
+				sum+=v;
+				sumSquared+=v2;
+				sumCubed+=v3;
+			}
+			const average=sum/size,
+				variance=(sumSquared/size)-average**2,
+				stdDev=Math.sqrt(variance),
+				skew=(sumCubed - 3*average*variance-average**3)/(variance*stdDev);
+			return [average,stdDev,skew];
+		},
+		{pipeline:pipeline,output:{x:details.rows.length},constants:{size:details.dimensions.x},returnType: 'Array(3)'}
+	);
+	return kernel(a,details.rows);
 }
 function matrixCovarianceColumns(a,columns,pipeline=false,blocks=1){
 	const details=getDetailsColumns(a,columns),columnCount=details.columns.length;
@@ -677,13 +681,39 @@ function matrixCovarianceColumns(a,columns,pipeline=false,blocks=1){
 	if(logger.active) logger.send({label:"matrixCovarianceColumns",blocks:blocks,options:options,details:details});
 	return kernel(aRevised,mean);
 }
+function matrixCovarianceRows(a,rows,pipeline=false,blocks=1){
+	const details=getDetailsRows(a,rows),rowCount=details.rows.length;
+	const aRevised=loadColumns(a,rows,true,blocks);
+	const mean=matrixAvgRows(aRevised,details,false,blocks);
+	const options={pipeline:pipeline,output:{x:rowCount},constants:{size:details.dimensions.x}}
+	let kernel;
+	if(blocks==1) {
+		options.output.y=rowCount;
+		 kernel=gpu.createKernel(function matrixCovarianceRows(a,mean) {
+			const {thread:{x,y},constants:{size}}=this;
+			let covariance=0;
+			for(let i=0;i<size; i++) covariance+=a[x][i]*a[y][i];
+			return covariance/size-mean[x]*mean[y];
+			},options);
+	} else {
+		options.output.y=blocks;
+		options.output.z=blocks;
+		kernel=gpu.createKernel(function covarianceBlocksRowFunction(a,mean) {
+			const {thread:{x,y,z},constants:{size}}=this;
+			let covariance=0;
+			for(let i=0;i<size; i++) covariance+=a[z][x][i]*a[y][x][i];
+			return covariance/size-mean[z][x]*mean[y][x];
+		},options);
+	}
+	return kernel(aRevised,mean);
+}
 function matrixCorrelationColumns(a,columns,pipeline=false,blocks=1){
 	const details=getDetailsColumns(a,columns),columnCount=details.columns.length;
 	const aRevised=loadColumns(a,details,true,blocks);
 	const norms=matrixNormsColumns(aRevised,"pipe",false);  // doesn't work if pipeline is returned
 	const options={pipeline:pipeline,output:{x:columnCount},constants:{size:details.dimensions.y/blocks}}
 	let kernel;
-	if(blocks==1) {blocks
+	if(blocks==1) {
 		options.output.y=columnCount;
 		kernel=gpu.createKernel(function correlationColumnFunction(a,norms) {
 				const {thread:{x,y},constants:{size}}=this,avgX=norms[x][0],avgY=norms[y][0];
@@ -712,7 +742,7 @@ function matrixCorrelationRows(a,rows,pipeline=false,blocks=1){
 	const norms=matrixNormsRows(aRevised,"pipe",false);  // doesn't work if pipeline is returned
 	const options={pipeline:pipeline,output:{x:rowCount},constants:{size:details.dimensions.x/blocks}}
 	let kernel;
-	if(blocks==1) {blocks
+	if(blocks==1) {
 		options.output.y=rowCount;
 		kernel=gpu.createKernel(function correlationRowFunction(a,norms) {
 				const {thread:{x,y},constants:{size}}=this,avgX=norms[x][0],avgY=norms[y][0];
@@ -732,6 +762,53 @@ function matrixCorrelationRows(a,rows,pipeline=false,blocks=1){
 	}
 	if(logger.active) logger.send({label:"matrixCorrelationRows",blocks:blocks,options:options,details:details});
 	return kernel(aRevised,norms);
+}
+function matrixNormaliseColumns(a,columns,pipeline=false,blocks=1,showDetails){
+	const details=getDetailsColumns(a,columns),columnCount=details.columns.length;
+	const aRevised=loadColumns(a,details,true,blocks);
+	const stats=matrixStatsColumns(aRevised,"pipe",false);  // doesn't work if pipeline is returned
+	const options={pipeline:pipeline,output:{x:columnCount,y:details.dimensions.y}}
+//	const options={pipeline:pipeline,output:{y:details.rows.length,x:details.dimensions.x}};
+	let kernel;
+	if(blocks==1) {
+		kernel=gpu.createKernel(function NormaliseColumnFunction(a,stats) {
+				const {thread:{x,y}}=this,avg=stats[x][2],range=stats[x][1]-stats[x][0];
+				return (a[y][x]-avg)/range;
+			},options);
+	} else {
+		options.output.y=options.output.y/blocks;
+		options.output.z=blocks;
+		kernel=gpu.createKernel(function NormaliseBlocksColumnFunction(a,stats) {
+				const {thread:{x,y,z}}=this, avg=stats[z][x][2],range=stats[z][x][1]-stats[z][x][0];
+				return (a[z][y][x]-avg)/range;
+			},options);
+	}
+	if(logger.active) logger.send({label:"matrixNormaliseColumns",blocks:blocks,options:options,details:details});
+	const results=kernel(aRevised,stats);
+	return showDetails?{results:results,stats:stats}:results;
+}
+function matrixNormaliseRows(a,rows,pipeline=false,blocks=1,showDetails){
+	const details=getDetailsRows(a,rows),rowCount=details.rows.length;
+	const aRevised=loadRows(a,details,true,blocks);
+	const stats=matrixStatsRows(aRevised,"pipe",false);  // doesn't work if pipeline is returned
+	const options={pipeline:pipeline,output:{y:rowCount,x:details.dimensions.x}};
+	let kernel;
+	if(blocks==1) {
+		kernel=gpu.createKernel(function NormaliseRowFunction(a,stats) {
+				const {thread:{x,y}}=this,avg=stats[y][2],range=stats[y][1]-stats[y][0];
+				return (a[y][x]-avg)/range;
+			},options);
+	} else {
+		options.output.x=options.output.x/blocks;
+		options.output.z=blocks;
+		kernel=gpu.createKernel(function NormaliseBlocksRowFunction(a,stats) {
+				const {thread:{x,y,z}}=this, avg=stats[z][y][2],range=stats[z][y][1]-stats[z][y][0];    
+				return (a[z][y][x]-avg)/range;
+			},options);
+	}
+	if(logger.active) logger.send({label:"matrixNormaliseRows",blocks:blocks,options:options,details:details});
+	const results=kernel(aRevised,stats);
+	return showDetails?{results:results,stats:stats}:results;
 }
 function imageToArray(image) {
 	const kernel=gpu.createKernel(function(image) {
@@ -791,14 +868,18 @@ function evalOperand(operand){
 	}
 }
 gpuFunctions.prototype.arrayAdd=evalOperand("+");
-gpuFunctions.prototype.arrayMinus=evalOperand("-");
-gpuFunctions.prototype.arrayMultiply=evalOperand("*");
-gpuFunctions.prototype.arrayDivide=evalOperand("/");
-gpuFunctions.prototype.arrayRemainder=evalOperand("%");
-gpuFunctions.prototype.arrayPower=evalOperand("**");
 gpuFunctions.prototype.arrayBitwiseAnd=evalOperand("&");
 gpuFunctions.prototype.arrayBitwiseOr=evalOperand("|");
 gpuFunctions.prototype.arrayBitwiseXOR=evalOperand("^");
+gpuFunctions.prototype.arrayDivide=evalOperand("/");
+gpuFunctions.prototype.arrayCleanse=arrayCleanse
+gpuFunctions.prototype.arrayLeftShift=evalOperand("<<");
+gpuFunctions.prototype.arrayMinus=evalOperand("-");
+gpuFunctions.prototype.arrayMultiply=evalOperand("*");
+gpuFunctions.prototype.arrayPower=evalOperand("**");
+gpuFunctions.prototype.arrayRemainder=evalOperand("%");
+gpuFunctions.prototype.arrayRightShift=evalOperand(">>");
+gpuFunctions.prototype.arrayRightShiftZeroFill=evalOperand(">>>");
 //gpuFunctions.prototype.arrayBitwiseNot=evalOperand("~");
 //gpuFunctions.prototype.arrayLogicalOr=evalOperand("||","Boolean");
 //gpuFunctions.prototype.arrayLogicalAnd=evalOperand("&&");
@@ -810,37 +891,36 @@ gpuFunctions.prototype.arrayBitwiseXOR=evalOperand("^");
 //gpuFunctions.prototype.arrayLessThan=evalOperand("<");
 //gpuFunctions.prototype.arrayGreaterOrEqual=evalOperand(">=");
 //gpuFunctions.prototype.arrayLessThanOrEqual=evalOperand("<=");
-gpuFunctions.prototype.arrayLeftShift=evalOperand("<<");
-gpuFunctions.prototype.arrayRightShift=evalOperand(">>");
-gpuFunctions.prototype.arrayRightShiftZeroFill=evalOperand(">>>");
-gpuFunctions.prototype.matrixTranspose=matrixTranspose;
-gpuFunctions.prototype.matrixMultiple=matrixMultiple;
-gpuFunctions.prototype.matrixSumRows=matrixSumRows;
-gpuFunctions.prototype.matrixAvgRows=matrixAvgRows;
-gpuFunctions.prototype.matrixRangeRows=matrixRangeRows;
-gpuFunctions.prototype.matrixStatsRows=matrixStatsRows;
-gpuFunctions.prototype.matrixSumColumns=matrixSumColumns;
-gpuFunctions.prototype.matrixAvgColumns=matrixAvgColumns;
-gpuFunctions.prototype.matrixRangeColumns=matrixRangeColumns;
-gpuFunctions.prototype.matrixStatsColumns=matrixStatsColumns;
-gpuFunctions.prototype.matrixNormsRows=matrixNormsRows;
-gpuFunctions.prototype.matrixNormsColumns=matrixNormsColumns;
-gpuFunctions.prototype.matrixMomentsRows=matrixMomentsRows;
-gpuFunctions.prototype.matrixMomentsColumns=matrixMomentsColumns;
-gpuFunctions.prototype.matrixVarianceRows=matrixVarianceRows;
-gpuFunctions.prototype.matrixVarianceColumns=matrixVarianceColumns;
-gpuFunctions.prototype.matrixCovarianceRows=matrixCovarianceRows
-gpuFunctions.prototype.matrixCovarianceColumns=matrixCovarianceColumns
-gpuFunctions.prototype.matrixCorrelationRows=matrixCorrelationRows;
-gpuFunctions.prototype.matrixCorrelationColumns=matrixCorrelationColumns;
 gpuFunctions.prototype.destroy=()=>gpu.destroy;
 gpuFunctions.prototype.GPUSupported=GPU.isGPUSupported?true:false;
+gpuFunctions.prototype.imageToArray=imageToArray;
+gpuFunctions.prototype.isGPUSupported=GPU.isGPUSupported?()=>true:()=>false;
+gpuFunctions.prototype.isArray=isArray
 gpuFunctions.prototype.load=loadColumns;
 gpuFunctions.prototype.loadColumns=loadColumns;
 gpuFunctions.prototype.loadColumnsDelta=loadColumnsDelta;
 gpuFunctions.prototype.loadRows=loadRows;
 gpuFunctions.prototype.loadRowsDelta=loadRowsDelta;
-gpuFunctions.prototype.imageToArray=imageToArray;
-gpuFunctions.prototype.isGPUSupported=GPU.isGPUSupported?()=>true:()=>false;
-gpuFunctions.prototype.isArray=isArray
+gpuFunctions.prototype.matrixAvgColumns=matrixAvgColumns;
+gpuFunctions.prototype.matrixAvgRows=matrixAvgRows;
+gpuFunctions.prototype.matrixCorrelationRows=matrixCorrelationRows;
+gpuFunctions.prototype.matrixCorrelationColumns=matrixCorrelationColumns;
+gpuFunctions.prototype.matrixCovarianceRows=matrixCovarianceRows
+gpuFunctions.prototype.matrixCovarianceColumns=matrixCovarianceColumns
+gpuFunctions.prototype.matrixMomentsColumns=matrixMomentsColumns;
+gpuFunctions.prototype.matrixMomentsRows=matrixMomentsRows;
+gpuFunctions.prototype.matrixNormaliseRows=matrixNormaliseRows;
+gpuFunctions.prototype.matrixNormaliseColumns=matrixNormaliseColumns;
+gpuFunctions.prototype.matrixNormsRows=matrixNormsRows;
+gpuFunctions.prototype.matrixNormsColumns=matrixNormsColumns;
+gpuFunctions.prototype.matrixMultiple=matrixMultiple;
+gpuFunctions.prototype.matrixRangeRows=matrixRangeRows;
+gpuFunctions.prototype.matrixRangeColumns=matrixRangeColumns;
+gpuFunctions.prototype.matrixStatsColumns=matrixStatsColumns;
+gpuFunctions.prototype.matrixStatsRows=matrixStatsRows;
+gpuFunctions.prototype.matrixSumColumns=matrixSumColumns;
+gpuFunctions.prototype.matrixSumRows=matrixSumRows;
+gpuFunctions.prototype.matrixTranspose=matrixTranspose;
+gpuFunctions.prototype.matrixVarianceRows=matrixVarianceRows;
+gpuFunctions.prototype.matrixVarianceColumns=matrixVarianceColumns;
 module.exports=gpuFunctions;
