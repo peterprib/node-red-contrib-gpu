@@ -654,7 +654,7 @@ function matrixNormsRows(a,rows,pipeline=false,blocks=1) {   //????  need to con
 	);
 	return kernel(a,details.rows);
 }
-function matrixCovarianceColumns(a,columns,pipeline=false,blocks=1){
+function matrixCovarianceColumns(a,columns,pipeline=false,blocks=1,showDetails){
 	const details=getDetailsColumns(a,columns),columnCount=details.columns.length;
 	const aRevised=loadColumns(a,columns,true,blocks);
 	const mean=matrixAvgColumns(aRevised,details,true);
@@ -679,9 +679,10 @@ function matrixCovarianceColumns(a,columns,pipeline=false,blocks=1){
 		},options);
 	}
 	if(logger.active) logger.send({label:"matrixCovarianceColumns",blocks:blocks,options:options,details:details});
-	return kernel(aRevised,mean);
+	const results=kernel(aRevised,mean);
+	return showDetails?{results:results,mean:mean}:results;
 }
-function matrixCovarianceRows(a,rows,pipeline=false,blocks=1){
+function matrixCovarianceRows(a,rows,pipeline=false,blocks=1,showDetails){
 	const details=getDetailsRows(a,rows),rowCount=details.rows.length;
 	const aRevised=loadColumns(a,rows,true,blocks);
 	const mean=matrixAvgRows(aRevised,details,false,blocks);
@@ -705,9 +706,10 @@ function matrixCovarianceRows(a,rows,pipeline=false,blocks=1){
 			return covariance/size-mean[z][x]*mean[y][x];
 		},options);
 	}
-	return kernel(aRevised,mean);
+	const results=kernel(aRevised,mean);
+	return showDetails?{results:results,mean:mean}:results;
 }
-function matrixCorrelationColumns(a,columns,pipeline=false,blocks=1){
+function matrixCorrelationColumns(a,columns,pipeline=false,blocks=1,showDetails){
 	const details=getDetailsColumns(a,columns),columnCount=details.columns.length;
 	const aRevised=loadColumns(a,details,true,blocks);
 	const norms=matrixNormsColumns(aRevised,"pipe",false);  // doesn't work if pipeline is returned
@@ -734,9 +736,10 @@ function matrixCorrelationColumns(a,columns,pipeline=false,blocks=1){
 			},options);
 	}
 	if(logger.active) logger.send({label:"matrixCorrelationColumns",blocks:blocks,options:options,details:details});
-	return kernel(aRevised,norms);
+	const results=kernel(aRevised,norms);
+	return showDetails?{results:results,norms:norms}:results;
 }
-function matrixCorrelationRows(a,rows,pipeline=false,blocks=1){
+function matrixCorrelationRows(a,rows,pipeline=false,blocks=1,showDetails){
 	const details=getDetailsRows(a,rows),rowCount=details.rows.length;
 	const aRevised=loadRows(a,details,true,blocks);
 	const norms=matrixNormsRows(aRevised,"pipe",false);  // doesn't work if pipeline is returned
@@ -761,7 +764,8 @@ function matrixCorrelationRows(a,rows,pipeline=false,blocks=1){
 			},options);
 	}
 	if(logger.active) logger.send({label:"matrixCorrelationRows",blocks:blocks,options:options,details:details});
-	return kernel(aRevised,norms);
+	const results=kernel(aRevised,norms);
+	return showDetails?{results:results,norms:norms}:results;
 }
 function matrixNormaliseColumns(a,columns,pipeline=false,blocks=1,showDetails){
 	const details=getDetailsColumns(a,columns),columnCount=details.columns.length;

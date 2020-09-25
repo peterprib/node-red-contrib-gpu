@@ -29,7 +29,9 @@
 		oneditprepare: function() {
 			let node=this;
 			const operands2=["arrayAdd","arrayMinus","arrayMultiply","arrayDivide","arrayRemainder","arrayPower","arrayBitwiseAnd","arrayBitwiseOr","arrayBitwiseXOR","arrayLeftShift","arrayRightShift","arrayRightShiftZeroFill","matrixMultiple"];
-			const operandsColumns=["loadRows","loadColumns","matrixNormsRows","matrixNormsColumns","matrixVarianceRows","matrixVarianceColumns","matrixCorrelationRows","matrixCorrelationColumns","matrixCovarianceRows","matrixCovarianceColumns"];
+			const operandsColumns=["loadRows","loadColumns","matrixNormaliseColumns","matrixNormaliseRows","matrixNormsRows","matrixNormsColumns",
+					"matrixVarianceRows","matrixVarianceColumns","matrixCorrelationRows","matrixCorrelationColumns",
+					"matrixCovarianceRows","matrixCovarianceColumns"];
 
 			$("#node-input-action").change(function() {
 				node.hasSecondArgument=operands2.includes($(this).val());
@@ -111,6 +113,8 @@
 			<option value="matrixMomentsRows"		>Moments Rows</option>
 			<option value="matrixMomentsColumns"	>Moments Columns</option>
 			<option value="arrayMultiply"			>Mulptiply Array</option>
+			<option value="matrixNormaliseColumns"	>Normalise Columns</option>
+			<option value="matrixNormaliseRows"		>Normalise Rows</option>
 			<option value="matrixNormsRows"			>Norms Rows</option>
 			<option value="matrixNormsColumns"		>Norms Columns</option>
 			<option value="arrayPower"				>Power Array</option>
