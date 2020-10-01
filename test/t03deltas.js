@@ -1,6 +1,7 @@
 const assert=require('assert');
 const GPU=require("../gpu");
 const gpu= new GPU();
+gpu.setDebugOff()
 const ar3c4=[[0,0,0,0],[1,2,3,4],[10,20,30,40]];
 const ar4c4=[[0,0,0,0],[1,2,3,4],[10,20,30,40],[100,200,300,400]];
 function test(a,e){

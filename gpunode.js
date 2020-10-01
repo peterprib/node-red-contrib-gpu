@@ -2,15 +2,7 @@ const logger = new (require("node-red-contrib-logger"))("gpunode");
 logger.sendInfo("Copyright 2020 Jaroslav Peter Prib");
 
 const GPU=require("./gpu");
-function isArray(a) {
-	return a instanceof Array
-		|| a instanceof Float32Array
-		|| a instanceof Float32Array
-		|| a instanceof Int16Array
-		|| a instanceof Int8Array
-		|| a instanceof Uint16Array
-		|| a instanceof Uint8Array;
-}
+const isArray=require("./lib/isArray");
 function dumpData(v) {
 	if(isArray(v)) {
 		const l=Math.min(v.length,4);
@@ -41,7 +33,7 @@ module.exports = function (RED) {
 		const node=Object.assign(this,config);
 		try{
 			node.getData1=evalFunction("Argument 1","return "+(node.source1Property||"msg.payload"));
-			node.getData2=evalFunction("Argument 2","return "+(node.source2Property||"msg.payload"));
+			if(node.hasSecondArgument) node.getData2=evalFunction("Argument 2","return "+(node.source2Property||"msg.payload"));
 //			node.deleteSource1Property=evalFunction("source1 delete","{delete "+(node.source1Property||"msg.payload")+";}");
 //			node.deleteSource2Property=evalFunction("source2 delete","{delete "+(node.source2Property||"msg.payload")+";}");
 			node.setData=evalFunction("target","{"+
@@ -61,6 +53,19 @@ module.exports = function (RED) {
 				if(!node.gpuFunction) throw Error("routine not found");
 			} catch (ex) {
 				error(node,node.action+" "+ex.message);
+				return;
+			}
+			if(node.action=="getHeatMap"){
+				node.on("input", function(msg) {
+					try{
+						const data1=node.getData1(RED,node,msg);
+						node.gpuFunction(data1,node.offset,node.factor,node.pipeline);
+					} catch (ex) {
+						msg.error=node.action+ " " +ex.message;
+						error(node,msg.error,"Error(s)");
+						node.send([null,msg]);
+					}
+				});
 				return;
 			}
 			node.on("input", function(msg) {

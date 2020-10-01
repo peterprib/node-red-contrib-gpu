@@ -34,10 +34,18 @@
 					"matrixCovarianceRows","matrixCovarianceColumns"];
 
 			$("#node-input-action").change(function() {
-				node.hasSecondArgument=operands2.includes($(this).val());
-				node.hasColumns=operandsColumns.includes($(this).val());
+				const action=$(this).val();
+				node.hasSecondArgument=operands2.includes(action);
+				node.hasColumns=operandsColumns.includes(action);
+				const requiresOffset=["getHeatMap"].includes(action);
+				const requiresFactor=["getHeatMap"].includes(action);
+				const requiresBlocksProperty=!(["getHeatMap","imageToArray"].includes(action));
+				
 				$(".form-row-http-in-source2Property")[node.hasSecondArgument?"show":"hide"]();
 				$(".form-row-http-in-columns")[node.hasColumns?"show":"hide"]();
+				$(".form-row-http-in-blocksProperty")[requiresBlocksProperty?"show":"hide"]();
+				$(".form-row-http-in-offset")[requiresOffset?"show":"hide"]();
+				$(".form-row-http-in-factor")[requiresFactor?"show":"hide"]();
 			}).change();
 			$("#node-input-columnsProperty").change(function() {
 				node.columnsPropertyValid=true;
@@ -103,6 +111,7 @@
 			<option value="matrixCovarianceRows"	>Covariance Rows Matrix</option>
 			<option value="matrixCovarianceColumns"	>Covariance Columns Matrix</option>
 			<option value="arrayDivide"				>Divide Array/option>
+ 			<option value="getHeatMap"				>Heat Map</option> 
  			<option value="imageToArray"			>Image To Array</option> 
 			<option value="arrayLeftShift"			>Left Shift Array</option>
 			<option value="loadColumns"				>Load Specific Columns</option>
@@ -145,14 +154,42 @@
 		<label for="node-input-blocksProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Blocks</label>
 		<input type="text" id="node-input-blocksProperty" placeholder="1">
 	</div>
+	<div class="form-row form-row-http-in-factor hide">
+		<label for="node-input-factor" style="white-space: nowrap"><i class="icon-bookmark"></i> Factor</label>
+		<input type="number" id="node-input-factor" placeholder="1">
+	</div>
+	<div class="form-row form-row-http-in-offset hide">
+		<label for="node-input-offset" style="white-space: nowrap"><i class="icon-bookmark"></i> Offset</label>
+		<input type="number" id="node-input-offset" placeholder="1">
+	</div>
+
 
 </script>
 
 <script type="text/x-red" data-help-name="gpunode">
+
 	<p>
-	Checks to see if a GPU is available on system and provides functions that work off an array or image.
-	Its use only becomes effective on large arrays due to the overheads
-	</p>
+	Access to gpu if available with various functions
+	<\p>
+
+<h3>Outputs</h3>
+	<ol class= class="message-properties">
+			 "node-ports">
+	    <li>Standard output
+		   <dl <dt>payload <span class="property-type">string</span></dt>
+			  <dd>the standard output of the gpu action.</dd>
+		   </dl>
+	    </li>
+	    <li>Standard error
+		   <dl class="message-properties">
+			  <dt>payload <span class="property-type">array or pipe object</span></dt>
+			  <dd>Orginal payload</dd>
+			  <dt>eror <span class="property-type">string</span></dt>
+			  <dd>Erro message</dd>
+		   </dl>
+		</li>
+	</ol>
+<h3>Details</h3>
 	<p>
 	Source/Target/Topic/Columns allows the override of the property to an expression which can reference RED, node or msg variables.
 	</p>
@@ -168,21 +205,10 @@
 	<p>
 	Blocks allows an array to be broken into another dimension.  Has perforance benefits plus handling normalised arays.  
 	</p>
-	<h3>Inputs</h3>
-	<dl class="message-properties">
-		<dt>msg <span class="property-type">topic</span></dt>
-		<dd>incoming message with topic</dd>
-		<dt>msg <span class="property-type">payload</span></dt>
-		<dd></dd>
-	</dl>
-	<h3>Ports</h3>
-	<dl class="message-properties">
-		<dt><span class="property-type">msg out</span></dt>
-		<dd>a message where msg.error details error during processing</dd>
-		<dt><span class="property-type">error</span></dt>
-		<dd>a message where msg.error details error during processing</dd>
-		<dt><span class="property-type">no gpu</span></dt>
-		<dd>Allow a flow to be built that will work if no GPU existss</dd>
 
-	</dl>
+	<p>
+	Checks to see if a GPU is available on system and provides functions that work off an array or image.
+	Its use only becomes effective on large arrays due to the overheads
+	</p>
+
 </script>

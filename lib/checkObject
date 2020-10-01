@@ -1,0 +1,14 @@
+const isArray=require("./isArray");
+
+function checkObject(a) {
+	if(a instanceof Array) {
+		const l=Math.min(20,a.length);
+		for(let i=0;i<l;i++)
+			if(typeof a[i] !== "number") throw Error("column "+i+" is not a number but "+(typeof a[i])+", cells must be numbers, value: "+a[i]);
+		return a.length;
+	}
+	if(isArray(a)) return a.length;
+	throw Error("columns must be array");
+}
+
+module.exports=checkObject;

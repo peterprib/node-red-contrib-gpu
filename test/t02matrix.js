@@ -1,9 +1,9 @@
 const assert=require('assert');
 const GPU=require("../gpu");
 const gpu= new GPU();
+gpu.setDebugOff();
 const a4=[0,1,2,3];
-//const a4b1=[true,false,true,false];
-//const a4b2=[false,false,true,true];
+
 const ac4=[[1,2,3,4]];
 const ar4=[[1],[2],[3],[4]];
 const ar3c3=[[1,2,3],[10,20,30],[100,200,300]];
@@ -28,6 +28,7 @@ function testArrayFunction(f,l="az2r2c2,az2r2c2,1",a=az2r2c2,b=az2r2c2,r){
 	});
 }
 function test(l,a,e){
+	console.log("**** "+l)
 	it(l, function(done) {
 		assertEq(e,a);
 		gpu.destroy();
@@ -85,15 +86,6 @@ describe('matrix', function() {
 	testArrayFunction("BitwiseAnd",undefined,undefined,undefined,[[{"0":111,"1":112},{"0":121,"1":122}],[{"0":211,"1":212},{"0":221,"1":222}]]);
 	testArrayFunction("BitwiseOr",undefined,undefined,undefined,[[{"0":111,"1":112},{"0":121,"1":122}],[{"0":211,"1":212},{"0":221,"1":222}]]);
 	testArrayFunction("BitwiseXOR",undefined,undefined,undefined,[[{"0":0,"1":0},{"0":0,"1":0}],[{"0":0,"1":0},{"0":0,"1":0}]]);
-//	testArrayFunction("LogicalOr",a4b1,a4b2);
-//	testArrayFunction("LogicalAnd",a4b1,a4b2);
-//	testArrayFunction("Equal");
-//	testArrayFunction("NotEqual");
-//	testArrayFunction("StrictEqual");
-//	testArrayFunction("GreaterThan");
-//	testArrayFunction("LessThan");
-//	testArrayFunction("GreaterOrEqual");
-//	testArrayFunction("LessThanOrEqual");
 	testArrayFunction("LeftShift",undefined,undefined,undefined,[[{"0":0,"1":0},{"0":0,"1":0}],[{"0":0,"1":0},{"0":0,"1":0}]]);
 	testArrayFunction("RightShift",undefined,undefined,undefined,[[{"0":0,"1":0},{"0":0,"1":0}],[{"0":0,"1":0},{"0":0,"1":0}]]);
 	testArrayFunction("RightShiftZeroFill",undefined,undefined,undefined,[[{"0":0,"1":0},{"0":0,"1":0}],[{"0":0,"1":0},{"0":0,"1":0}]]);
@@ -103,14 +95,8 @@ describe('matrix', function() {
 	test("scalar multi 2xar3c3",gpu.matrixMultiple(2,ar3c3), [{"0":2,"1":20,"2":200},{"0":4,"1":40,"2":400},{"0":6,"1":60,"2":600}]);
 
 	test("multi ar3c3*ar3c3",gpu.matrixMultiple(ar3c3,ar3c3),[{"0":321,"1":642,"2":963},{"0":3210,"1":6420,"2":9630},{"0":32100,"1":64200,"2":96300}]);
-//	testThrow("multi ac4*ac4",gpu.matrixMultiple(ac4,ac4),[{"0":10},{"0":10},{"0":10},{"0":10}]);
 	test("multi ac4*ar4",gpu.matrixMultiple(ac4,ar4),[{"0":30,"1":24,"2":22,"3":24}]);
 	test("multi ar4*ac4",gpu.matrixMultiple(ar4,ac4),[{"0":1},{"0":2},{"0":3},{"0":4}]);
-//	testThrow("multi ar4*ar4",gpu.matrixMultiple(ar4,ar4),[{"0":1,"1":2,"2":3,"3":4}]);
-//	testThrow("multi ac4*ar3c3",gpu.matrixMultiple(ar4,ar3c3),[{"0":321,"1":642,"2":963,"3":210},{"0":432,"1":864,"2":1296,"3":320},{"0":143,"1":286,"2":429,"3":430}]);
-//	testThrow("multi ar4*ar3c3",gpu.matrixMultiple(ac4,ar3c3),[{"0":321},{"0":321},{"0":321}]);
-//	testThrow("multi ar3c3*ar4",gpu.matrixMultiple(ar3c3,ar4),[{"0":1,"1":2,"2":3}]);
-//	testThrow("multi ar3c3*ac4",gpu.matrixMultiple(ar3c3,ac4), [{"0":16,"1":32,"2":48},{"0":160,"1":320,"2":480},{"0":600,"1":1200,"2":1800},{"0":1,"1":2,"2":3}]);
 	test("multi ar4c3*ar3c4",gpu.matrixMultiple(ar4c3,ar3c4),[{"0":0,"1":0,"2":0},{"0":32,"1":64,"2":96},{"0":320,"1":640,"2":960},{"0":3200,"1":6400,"2":9600}]);
 	test("multi ar3c4*ar4c3",gpu.matrixMultiple(ar3c4,ar4c3),[{"0":0,"1":0,"2":0,"3":0},{"0":433,"1":864,"2":1296,"3":325},{"0":4330,"1":8640,"2":12960,"3":3250}]);
 
@@ -118,6 +104,7 @@ describe('matrix', function() {
 	test("sum Columns ar4c3",gpu.matrixSumColumns(ar4c3),{"0":112,"1":222,"2":333});
 	test("sum Columns ar4c3 b2",gpu.matrixSumColumns(ar4c3,null,null,2),[{"0":2,"1":2,"2":3},{"0":110,"1":220,"2":330}]);
 	test("sum Columns ar3c4",gpu.matrixSumColumns(ar3c4),{"0":11,"1":22,"2":33,"3":44});
+	
 	test("sum Rows ar3c3",gpu.matrixSumRows(ar3c3),{"0":6,"1":60,"2":600});
 	test("sum Rows ar4c3",gpu.matrixSumRows(ar4c3),{"0":1,"1":6,"2":60,"3":600});
 	test("sum Rows ar3c4",gpu.matrixSumRows(ar3c4),{"0":0,"1":10,"2":100});
@@ -174,11 +161,7 @@ describe('matrix', function() {
 	test("matrixCovarianceRows ar4c3",gpu.matrixCovarianceRows(ar4c3),[{"0":0.2222222238779068,"1":-0.3333333432674408,"2":-3.3333334922790527,"3":-33.333335876464844},{"0":-0.3333333432674408,"1":0.6666669845581055,"2":6.666667938232422,"3":66.66668701171875},{"0":-3.3333334922790527,"1":6.666667938232422,"2":66.66668701171875,"3":666.6669921875},{"0":-33.333335876464844,"1":66.66668701171875,"2":666.6669921875,"3":6666.66796875}]);
 	test("matrixCovarianceRows ar3c4",gpu.matrixCovarianceRows(ar3c4),[{"0":0,"1":0,"2":0},{"0":0,"1":1.25,"2":12.5},{"0":0,"1":12.5,"2":125}]);
 	test("matrixCovarianceColumns ar3c3",gpu.matrixCovarianceColumns(ar3c3),[{"0":1998,"1":3996,"2":5994},{"0":3996,"1":7992,"2":11988},{"0":5994,"1":11988,"2":17982}]);
-	test("matrixCovarianceColumns ar4c3",gpu.matrixCovarianceColumns(ar4c3),[
-			{"0":1741.5,"1":3496.5,"2":5244.75},
-			{"0":3496.5,"1":7020.75,"2":10531.125},
-			{"0":5244.75,"1":10531.125,"2":15796.6875}
-	]);
+	test("matrixCovarianceColumns ar4c3",gpu.matrixCovarianceColumns(ar4c3),[	{"0":1741.5,"1":3496.5,"2":5244.75},	{"0":3496.5,"1":7020.75,"2":10531.125},{"0":5244.75,"1":10531.125,"2":15796.6875}]);
 	test("matrixCovarianceColumns ar3c4",gpu.matrixCovarianceColumns(ar3c4),[{"0":20.22222328186035,"1":40.4444465637207,"2":60.666664123535156,"3":80.8888931274414},{"0":40.4444465637207,"1":80.8888931274414,"2":121.33332824707031,"3":161.7777862548828},{"0":60.666664123535156,"1":121.33332824707031,"2":182,"3":242.66665649414062},{"0":80.8888931274414,"1":161.7777862548828,"2":242.66665649414062,"3":323.5555725097656}]);
 
 	test("matrixCorrelationRows ar3c3",gpu.matrixCorrelationRows(ar3c3),[{"0":1,"1":1,"2":1},{"0":1,"1":1,"2":1},{"0":1,"1":1,"2":1}]);	
@@ -239,5 +222,4 @@ describe('matrix', function() {
 	testCleansed("matrixNormaliseColumns ar4c3",gpu.matrixNormaliseColumns(ar4c3,null,false,1,true),ar4cNorm);
 	testCleansed("matrixNormaliseColumns ar4c3 blocks 2",gpu.matrixNormaliseColumns(ar4c3,null,false,2,true),{"results":[[[null,-0.5,-0.4999999701976776],[null,0.5,0.4999999701976776]],[[-0.4999999701976776,-0.4999999701976776,-0.5],[0.4999999701976776,0.4999999701976776,0.5]]],"stats":ar4c3b2stats});
 
-	
 }); 

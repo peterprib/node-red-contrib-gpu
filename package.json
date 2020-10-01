@@ -1,6 +1,6 @@
 {
 	"name": "node-red-contrib-gpu",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Node-RED GPU functions",
 	"main": "gpu.js",
 	"dependencies": {
@@ -37,12 +37,15 @@
 		"covariance",
 		"corelation",
 		"deviation",
+		"deltas",
 		"functions",
 		"gpu",
+		"heatmap",
 		"image",
 		"matrix",
 		"moments",
 		"normalise",
+		"normalize",
 		"pearson",
 		"range",
 		"skewness",

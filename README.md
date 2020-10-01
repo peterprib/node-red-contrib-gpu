@@ -35,6 +35,8 @@ Functions
 * Correlation Coefficients (Pearson)
 * Divide Array/option>
 * Left Shift Array
+* Heat Map
+* Image to array
 * Load array into pipeline
 * load array with deltas
 * Matrix Multiple Arrays
@@ -61,6 +63,8 @@ Can be included and gives access to other functions
 * isGPUSupported
 * isArray
 * arrayCleanse
+* arrayDimensions
+* checkObject
 
 ------------------------------------------------------------
 
@@ -73,6 +77,8 @@ Run the following command in the root directory of your Node-RED install or via 
 ------------------------------------------------------------
 
 # Version
+
+0.4.0 Major re-arrange of code.  Bug fix for rows blocking on norms.  Access to more internal functions.  Add heat map
 
 0.3.0 Fix blocking issues, add normalized data
 
