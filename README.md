@@ -27,6 +27,7 @@ Pipeline allows information to be retained in GPU between nodes minimising overh
 ![gpu node](documentation/gpu node.jpg "gpu node") 
 
 Functions
+* Code - freeform code
 * Add Array
 * Bitwise And Array
 * Bitwise Or Array
@@ -53,6 +54,23 @@ Functions
 * Sum Rows
 * Image To Array
 * Transpose
+------------------------------------------------------------
+
+# Code
+
+This option allows one to provide own code.
+Extra tabs appear to allow one to code for 1 to 3 dimensions.
+Depending on dimension variables x,y,z are accessible along with the input array size via variables xSize,ySize,zSize.
+It should be noted that only a limited subset of javascript is available.  See [gpu.js][4] for details.
+
+
+The node determines which dimension code is applicable by the input array.
+It then builds and cache the kernel for reuse at execution with a depth of 100.
+Kernels are fixed for output matrix size.  
+This minimises overhead as in main most input is similar sized and gives maximum flexibility.
+In future may enable set definable output size and more than one argument which are both required for matrix manipulation.
+
+![code](documentation/codeFreeform.jpg "code") 
 
 ------------------------------------------------------------
 
@@ -77,6 +95,8 @@ Run the following command in the root directory of your Node-RED install or via 
 ------------------------------------------------------------
 
 # Version
+
+0.5.0 Add free form code
 
 0.4.0 Major re-arrange of code.  Bug fix for rows blocking on norms.  Access to more internal functions.  Add heat map
 

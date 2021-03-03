@@ -9,11 +9,15 @@
 			blocksProperty:{value:"1"},
 			columnsProperty:{value:""},
 			columnsPropertyValid:{value:true,validate:(v)=>v},
+			dimensionX:{value:100},
+			dimensionY:{value:0},
+			dimensionZ:{value:0},
 			hasSecondArgument:{value:false},
 			hasColumns:{value:false},
 			pipeline:{value:false},
 			source1Property:{value:"msg.payload"},
 			source2Property:{value:"msg.payload"},
+			statements: {value:{}},
 			targetProperty:{value:"msg.payload"}
 		},
 		inputs: 1,
@@ -24,22 +28,45 @@
 		inputLabels: "Message In",
 		outputLabels: ["Message Out","Error","No GPU"],
 		label: function () {
-			return this.name ||this.action|| "GPU";
+			return this.name||this.action||"GPU";
 		},
 		oneditprepare: function() {
-			let node=this;
+			const node=this;
+			let freeformTab=false;
 			const operands2=["arrayAdd","arrayMinus","arrayMultiply","arrayDivide","arrayRemainder","arrayPower","arrayBitwiseAnd","arrayBitwiseOr","arrayBitwiseXOR","arrayLeftShift","arrayRightShift","arrayRightShiftZeroFill","matrixMultiple"];
 			const operandsColumns=["loadRows","loadColumns","matrixNormaliseColumns","matrixNormaliseRows","matrixNormsRows","matrixNormsColumns",
 					"matrixVarianceRows","matrixVarianceColumns","matrixCorrelationRows","matrixCorrelationColumns",
 					"matrixCovarianceRows","matrixCovarianceColumns"];
-
+			let tabs=RED.tabs.create({
+				id: "node-gpu-tabs",
+				onchange: function(tab) {
+					$("#node-gpu-tabs-content").children().hide();
+					$("#"+tab.id).show();
+				}
+			});
+			tabs.addTab({id: "gpu-tab-base",label: "Base"})
 			$("#node-input-action").change(function() {
 				const action=$(this).val();
 				node.hasSecondArgument=operands2.includes(action);
 				node.hasColumns=operandsColumns.includes(action);
 				const requiresOffset=["getHeatMap"].includes(action);
 				const requiresFactor=["getHeatMap"].includes(action);
-				const requiresBlocksProperty=!(["getHeatMap","imageToArray"].includes(action));
+				const requiresBlocksProperty=!(["getHeatMap","imageToArray"].includes(action));		
+				if(action=="freeform") {
+					if(freeformTab==false) {
+						tabs.addTab({id: "gpu-tab-freeformX",label: "1 dimension (x)"});
+						tabs.addTab({id: "gpu-tab-freeformXY",label: "2 dimensions (x,y)"});
+						tabs.addTab({id: "gpu-tab-freeformXYZ",label: "3 dimensions (x,y,z)"});
+						freeformTab=true;
+					}
+				} else {
+					if(freeformTab==true) {
+						tabs.removeTab("gpu-tab-freeformX");
+						tabs.removeTab("gpu-tab-freeformXY");
+						tabs.removeTab("gpu-tab-freeformXYZ");
+						freeformTab=false;
+					}
+				}
 				
 				$(".form-row-http-in-source2Property")[node.hasSecondArgument?"show":"hide"]();
 				$(".form-row-http-in-columns")[node.hasColumns?"show":"hide"]();
@@ -68,12 +95,72 @@
 					node.columnsPropertyValid=false;
 				}
 			}).change();
+			node.editor={};
+			setupStatements("X");
+			setupStatements("XY");
+			setupStatements("XYZ");
+			function setupStatements(dimension){
+				const id="node-input-statements"+dimension;
+				const idNode=$("#"+id);
+				const value=(node.statements||{})[dimension]||"";
+				node.editor[dimension]=RED.editor.createEditor({
+					id: id+'-editor',
+					mode: 'ace/mode/javascript',
+					value: value
+				});
+				if(node.editor[dimension]==null) console.error("failed to create editor for "+dimension)
+				const editor=node.editor[dimension];
+				editor.getSession().on('change', function() {
+					idNode.val(editor.getValue());
+					idNode.change();
+				});
+
+				$("#"+id+"label").click(function(e) {
+					e.preventDefault();
+					RED.editor.editJavaScript({
+						value: editor.getValue(),
+						width: "Infinity",
+						cursor: editor.getCursorPosition(),
+						mode: "ace/mode/javascript",
+						complete: function(v,cursor) {
+							editor.setValue(v, -1);
+							editor.gotoLine(cursor.row+1,cursor.column,false);
+							setTimeout(()=>editor.focus(),300);
+						}
+					})
+				})	
+			}
 		},
 		oneditsave: function() {
+			this.statements={X:this.editor.X.getValue(),XY:this.editor.XY.getValue(),XYZ:this.editor.XYZ.getValue()};
+			this.editor.X.destroy();
+			this.editor.XY.destroy();
+			this.editor.XYZ.destroy();
+			delete this.editor;
+		},
+		oneditcancel: function() {
+			this.editor.X.destroy();
+			this.editor.XY.destroy();
+			this.editor.XYZ.destroy();
+			delete this.editor;
 		},
 		oneditresize: function() {
 		},
 		resizeRule: function(file,newWidth) {
+			function resizeEditor(dimension){
+				const editorId=".node-text-editor"+dimension+"-row";
+				const rows=$("#dialog-form>div:not("+editorId+")");
+				let height=$("#dialog-form").height();
+				for(const i=0; i<rows.size(); i++)
+					height-=$(rows[i]).outerHeight(true);
+				const editorRow=$("#dialog-form>div"+editorId);
+				height-=(parseInt(editorRow.css("marginTop"))+parseInt(editorRow.css("marginBottom")));
+				$(".node-text-editor").css("height",height+"px");
+				if(this.editor[dimension]) this.editor[dimension].resize();
+			}
+			resizeEditor("X");
+			resizeEditor("XY");
+			resizeEditor("XYZ");
 		}
 	});
 </script>
@@ -84,23 +171,11 @@
 		<label for="node-input-name"><i class="fa fa-tag"></i> Name </label>
 		<input type="text" id="node-input-name" placeholder="Name">
 	</div>
-	<div class="form-row form-row-http-in-source1Property show">
-		<label for="node-input-source1Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 1</label>
-		<input type="text" id="node-input-source1Property" placeholder="msg.payload">
-	</div>
-	<div class="form-row form-row-http-in-source2Property show">
-		<label for="node-input-source2Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 2</label>
-		<input type="text" id="node-input-source2Property" placeholder="msg.payload">
-	</div>
-	<div class="form-row form-row-http-in-targetProperty show">
-		<label for="node-input-targetProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Target Property </label>
-		<input type="text" id="node-input-targetProperty" placeholder="msg.payload">
-	</div>
-
 	<div class="form-row">
 		<label for="node-input-action"><i class="fa fa-list-ul"></i> Function </label>
 		<select id="node-input-action" placeholder="action">
-			<option value="arrayAdd">Add Array</option>
+			<option value="freeform"				>Code</option>
+			<option value="arrayAdd"				>Add Array</option>
 			<option value="matrixAvgRows"			>Average Rows</option>
 			<option value="matrixAvgColumns"		>Average Columns</option>
 			<option value="arrayBitwiseAnd"			>Bitwise And Array</option>
@@ -111,8 +186,8 @@
 			<option value="matrixCovarianceRows"	>Covariance Rows Matrix</option>
 			<option value="matrixCovarianceColumns"	>Covariance Columns Matrix</option>
 			<option value="arrayDivide"				>Divide Array/option>
- 			<option value="getHeatMap"				>Heat Map</option> 
- 			<option value="imageToArray"			>Image To Array</option> 
+			<option value="getHeatMap"				>Heat Map</option> 
+			<option value="imageToArray"			>Image To Array</option> 
 			<option value="arrayLeftShift"			>Left Shift Array</option>
 			<option value="loadColumns"				>Load Specific Columns</option>
 			<option value="loadColumnsDelta"		>Load Specific Columns Deltas</option>
@@ -142,28 +217,70 @@
 			<option value="matrixVarianceColumns"	>Variance Columns</option>
 		</select>
 	</div>
-	<div class="form-row form-row-http-in-columns show">
-		<label for="node-input-columnsProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Column List </label>
-		<input type="text" id="node-input-columnsProperty" placeholder="msg.payload">
-	</div>
-	<div class="form-row">
-		<input type="checkbox" id="node-input-pipeline" style="display: inline-block; width: auto; vertical-align: top;">
-		<label for="node-input-pipeline" style="width: auto">Pipeline</label>
- 	</div>
-	<div class="form-row form-row-http-in-blocksProperty show">
-		<label for="node-input-blocksProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Blocks</label>
-		<input type="text" id="node-input-blocksProperty" placeholder="1">
-	</div>
-	<div class="form-row form-row-http-in-factor hide">
-		<label for="node-input-factor" style="white-space: nowrap"><i class="icon-bookmark"></i> Factor</label>
-		<input type="number" id="node-input-factor" placeholder="1">
-	</div>
-	<div class="form-row form-row-http-in-offset hide">
-		<label for="node-input-offset" style="white-space: nowrap"><i class="icon-bookmark"></i> Offset</label>
-		<input type="number" id="node-input-offset" placeholder="1">
-	</div>
+    <div class="form-row">
+        <ul style="background: #fff; min-width: 600px; margin-bottom: 20px;" id="node-gpu-tabs"></ul>
+    </div>
 
-
+    <div id="node-gpu-tabs-content" style="min-height: 170px;">
+		<div id="gpu-tab-base" style="display:none">
+			<div class="form-row form-row-http-in-source1Property show">
+				<label for="node-input-source1Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 1</label>
+				<input type="text" id="node-input-source1Property" placeholder="msg.payload">
+			</div>
+			<div class="form-row form-row-http-in-source2Property show">
+				<label for="node-input-source2Property" style="white-space: nowrap"><i class="icon-bookmark"></i> Argument 2</label>
+				<input type="text" id="node-input-source2Property" placeholder="msg.payload">
+			</div>
+			<div class="form-row form-row-http-in-targetProperty show">
+				<label for="node-input-targetProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Target Property </label>
+				<input type="text" id="node-input-targetProperty" placeholder="msg.payload">
+			</div>
+			<div class="form-row form-row-http-in-columns show">
+				<label for="node-input-columnsProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Column List </label>
+				<input type="text" id="node-input-columnsProperty" placeholder="msg.payload">
+			</div>
+			<div class="form-row">
+				<input type="checkbox" id="node-input-pipeline" style="display: inline-block; width: auto; vertical-align: top;">
+				<label for="node-input-pipeline" style="width: auto">Pipeline</label>
+			</div>
+			<div class="form-row form-row-http-in-blocksProperty show">
+				<label for="node-input-blocksProperty" style="white-space: nowrap"><i class="icon-bookmark"></i> Blocks</label>
+				<input type="text" id="node-input-blocksProperty" placeholder="1">
+			</div>
+			<div class="form-row form-row-http-in-factor hide">
+				<label for="node-input-factor" style="white-space: nowrap"><i class="icon-bookmark"></i> Factor</label>
+				<input type="number" id="node-input-factor" placeholder="1">
+			</div>
+			<div class="form-row form-row-http-in-offset hide">
+				<label for="node-input-offset" style="white-space: nowrap"><i class="icon-bookmark"></i> Offset</label>
+				<input type="number" id="node-input-offset" placeholder="1">
+			</div>
+		</div>
+		<div id="gpu-tab-freeformX" style="display:none">
+			<div class="form-row" style="margin-bottom: 0px;">
+				<label for="" style="width: unset;" id="node-input-statementsXlabel"><i class="fa fa-edit"></i> Statements</label>
+			</div>
+			<div class="form-row node-text-editor-row">
+				<div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-statementsX-editor" ></div>
+			</div>
+		</div>
+		<div id="gpu-tab-freeformXY" style="display:none">
+			<div class="form-row" style="margin-bottom: 0px;">
+				<label for="" style="width: unset;" id="node-input-statementsXYlabel"><i class="fa fa-edit"></i> Statements</label>
+			</div>
+			<div class="form-row node-text-editor-row">
+				<div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-statementsXY-editor" ></div>
+			</div>
+		</div>
+		<div id="gpu-tab-freeformXYZ" style="display:none">
+			<div class="form-row" style="margin-bottom: 0px;">
+				<label for="" style="width: unset;" id="node-input-statementsXYZlabel"><i class="fa fa-edit"></i> Statements</label>
+			</div>
+			<div class="form-row node-text-editor-row">
+				<div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-statementsXYZ-editor" ></div>
+			</div>
+		</div>
+	</div>
 </script>
 
 <script type="text/x-red" data-help-name="gpunode">
@@ -203,7 +320,10 @@
 	Pipeline allows values to be piped from one node to another to avoid overhead of loading and unloading GPU  
 	</p>
 	<p>
-	Blocks allows an array to be broken into another dimension.  Has perforance benefits plus handling normalised arays.  
+	Blocks allows a 2D array to be broken into 3D.  
+	</p>
+	<p>
+	Code allows one to generate own function.  A separate function must be provided   
 	</p>
 
 	<p>
