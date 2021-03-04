@@ -1,5 +1,5 @@
 const assert=require('assert');
-const {GPU}=require('gpu.js');
+const {GPU}=require('../gpu.js');
 const gpu = new GPU();
 const a3=[1,2,3];
 const a33=[[11,21],[12,21],[13,23]];
