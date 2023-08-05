@@ -18,8 +18,8 @@
 		"eslint-plugin-promise": "^4.3.1",
 		"eslint-plugin-standard": "^4.1.0",
 		"mocha": "^8.3.0",
-		"node-red": "^1.2.9",
-		"node-red-node-test-helper": "^0.2.7"
+		"node-red": "^3.0.2",
+		"node-red-node-test-helper": "^0.3.0"
 	},
 	"scripts": {
 		"test": "mocha \"test/**/t*.js\"",
