@@ -102,4 +102,5 @@ dist
 
 # TernJS port file
 .tern-port
-.vs/node-red-contrib-gpu/v17/.wsuo
+.vs
+.temp
