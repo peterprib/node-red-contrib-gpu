@@ -5,6 +5,7 @@
 	"main": "gpu.js",
 	"dependencies": {
 		"gpu.js": "^2.11.2",
+		"node-red-contrib-gpu": "file:",
 		"node-red-contrib-logger": "*",
 		"serialize-javascript": "^5.0.1"
 	},
