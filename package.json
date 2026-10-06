@@ -22,6 +22,9 @@
 		"node-red": "^3.0.2",
 		"node-red-node-test-helper": "^0.3.0"
 	},
+	"engines": {
+		"node": ">=22.0.0"
+	},
 	"scripts": {
 		"test": "mocha \"test/**/t*.js\"",
 		"lint": "eslint --ext .js ./",
